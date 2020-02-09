@@ -1,20 +1,24 @@
-
+use serenity::framework::standard::{macros::command, CommandResult, StandardFramework};
 use serenity::{model::channel::Message, prelude::*};
-use serenity::framework::standard::{StandardFramework, CommandResult, macros::command};
+
+use crate::util::parse_args;
 
 pub struct Command {
     pub key: String,
-    pub description: String
+    pub description: String,
 }
 
-pub fn define_commands() -> Vec<Command>{
-    let ping = Command{key: String::from("!ping"), description: String::from("Pings the bot")};
+pub fn define_commands() -> Vec<Command> {
+    let ping = Command {
+        key: String::from("!ping"),
+        description: String::from("Pings the bot"),
+    };
 
     vec![ping]
 }
 
 #[command]
-pub fn ping(ctx: &mut Context, msg: &Message) -> CommandResult{
+pub fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
     if let Err(err) = msg.channel_id.say(&ctx.http, "Pong!") {
         println!("Err sending message: {}", err);
     };
@@ -23,7 +27,11 @@ pub fn ping(ctx: &mut Context, msg: &Message) -> CommandResult{
 }
 
 #[command]
+#[num_args(2)]
 pub fn kick(ctx: &mut Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "Called kick command");
+    msg.reply(&ctx, "Called kick command");
+    let mut args = parse_args(msg);
+    msg.reply(&ctx, &args[1]);
+    let guild_members = msg.guild(&ctx.cache);
     Ok(())
 }
