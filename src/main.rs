@@ -7,6 +7,7 @@ use serenity::{
 use std::collections::HashSet;
 mod commands;
 mod util;
+mod checks;
 use crate::commands::general::*;
 
 #[group]
