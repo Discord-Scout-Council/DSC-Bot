@@ -1,6 +1,6 @@
 use serenity::{
     framework::standard::{macros::group, StandardFramework},
-    model::{channel::Message, gateway::Ready},
+    model::{channel::{Reaction, ReactionType}, gateway::Ready},
     prelude::*,
 };
 use std::collections::HashSet;
@@ -16,6 +16,25 @@ struct Handler;
 impl EventHandler for Handler {
     fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} logged in successfully!", ready.user.name);
+    }
+    fn reaction_add(&self, ctx: Context, reaction: Reaction) {
+        let msg = reaction.message(ctx.http).unwrap(); 
+        let reactions = msg.reactions;
+        for r in &reactions {
+            match &r.reaction_type {
+                ReactionType::Custom{animated,id,name} => if id.as_u64() == &701900676313383092 {
+                    if (r.count >= 2) {
+                        println!("Starboarded!");
+                    }
+                },
+                ReactionType::Unicode(emoji) => if emoji == "⭐" {
+                    if (r.count >= 1) {
+                        println!("Starboarded!");
+                    }
+                },
+                __ => (),
+            }
+        }
     }
 }
 
