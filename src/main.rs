@@ -1,6 +1,7 @@
 use serenity::{
-    framework::standard::{macros::group, StandardFramework},
-    model::{channel::{Reaction, ReactionType}, gateway::Ready},
+    framework::standard::{
+        macros::{help,group}, StandardFramework, Args, CommandResult, HelpOptions, help_commands, CommandGroup},
+    model::{channel::{Reaction, ReactionType, Message}, gateway::Ready, id::UserId},
     prelude::*,
 };
 use std::collections::HashSet;
@@ -38,6 +39,11 @@ impl EventHandler for Handler {
     }
 }
 
+#[help]
+fn help(context: &mut Context, msg: &Message, args: Args, help_options: &'static HelpOptions, groups: &[&'static CommandGroup], owners: HashSet<UserId>) -> CommandResult {
+    help_commands::with_embeds(context, msg, args, help_options, groups, owners)
+}
+
 fn main() {
     let config: util::BotConfig = util::parse_config();
 
@@ -60,6 +66,7 @@ fn main() {
             .configure(|c| c
                 .prefix(&config.prefix.to_string())
                 .owners(owners))
+            .help(&HELP)
             .group(&GENERAL_GROUP),
     );
 
