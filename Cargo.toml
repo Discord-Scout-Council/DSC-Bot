@@ -1,5 +1,5 @@
 [package]
-name = "kronos-rust"
+name = "campmaster-constantine"
 version = "0.1.0"
 authors = ["Owen Salter <owen@devosmium.xyz>"]
 edition = "2018"
