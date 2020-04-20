@@ -26,12 +26,3 @@ pub fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 
-#[command]
-#[num_args(2)]
-pub fn kick(ctx: &mut Context, msg: &Message) -> CommandResult {
-    msg.reply(&ctx, "Called kick command");
-    let mut args = parse_args(msg);
-    msg.reply(&ctx, &args[1]);
-    let guild_members = msg.guild(&ctx.cache);
-    Ok(())
-}

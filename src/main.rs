@@ -36,24 +36,3 @@ fn main() {
     }
 }
 
-fn parse_command(msg: &Message) -> Result<String, String> {
-    let command_list = commands::define_commands();
-    let split = msg.content.split_whitespace().collect::<Vec<&str>>();
-    let command = split[0].to_string();
-
-    let mut command_key = String::new();
-    let mut matched = false;
-
-    for c in command_list.iter() {
-        if c.key == command {
-            println!("Matched to {}", c.key);
-            matched = true;
-            command_key = c.key.clone();
-        }
-    }
-    if matched {
-        Ok(command_key)
-    } else {
-        Err(String::from("Could not match command"))
-    }
-}
