@@ -3,12 +3,13 @@ use serenity::{
     model::{channel::Message, gateway::Ready},
     prelude::*,
 };
+use std::collections::HashSet;
 mod commands;
 mod util;
-use crate::commands::*;
+use crate::commands::general::*;
 
 #[group]
-#[commands(ping, kick)]
+#[commands(ping,about)]
 struct General;
 
 struct Handler;
