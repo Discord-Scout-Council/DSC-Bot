@@ -26,9 +26,21 @@ fn main() {
 
     let mut client = Client::new(token, Handler).expect("Err creating client");
 
+    let owners = match client.cache_and_http.http.get_current_application_info() {
+        Ok(info) => {
+            let mut set = HashSet::new();
+            set.insert(info.owner.id);
+
+            set
+        },
+        Err(why) => panic!("Coudln't get application info: {:?}", why),
+    };
+
     client.with_framework(
         StandardFramework::new()
-            .configure(|c| c.prefix(&config.prefix.to_string()))
+            .configure(|c| c
+                .prefix(&config.prefix.to_string())
+                .owners(owners))
             .group(&GENERAL_GROUP),
     );
 
