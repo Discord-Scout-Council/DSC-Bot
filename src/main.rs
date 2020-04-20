@@ -4,7 +4,9 @@ use serenity::{
     model::{channel::{Reaction, ReactionType, Message}, gateway::Ready, id::UserId},
     prelude::*,
 };
-use std::collections::HashSet;
+use std::{collections::HashSet};
+use pickledb::{PickleDb, PickleDbDumpPolicy, SerializationMethod};
+
 mod commands;
 mod util;
 mod checks;
@@ -36,6 +38,19 @@ impl EventHandler for Handler {
                 },
                 __ => (),
             }
+        }
+    }
+
+    fn message(&self, ctx: Context, msg: Message) {
+        let mut db = PickleDb::new("points.db", PickleDbDumpPolicy::AutoDump, SerializationMethod::Json);
+
+        if let None = db.get::<u64>(&msg.author.id.to_string()) {
+            db.set(&msg.author.id.to_string(), &0).unwrap();
+        }
+
+        if !msg.channel_id.name(ctx).unwrap().contains(&String::from("bot")) {
+            println!("Would've assigned additional points to {}", msg.author.name)
+            
         }
     }
 }
