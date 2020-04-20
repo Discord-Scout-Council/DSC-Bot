@@ -1,0 +1,15 @@
+image: alpine/edge
+packages: 
+  - rust
+  - cargo
+
+sources: 
+  - git@git.sr.ht:~muirrum/campmasterconstantine
+
+secrets:
+  -  fd334eb2-1eea-49c9-92e0-3eb1fb331615
+
+tasks:
+  - build: |
+      cd campmasterconstantine
+      cargo build
