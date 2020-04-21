@@ -6,6 +6,7 @@ use serenity::{
 };
 use std::{collections::HashSet};
 use pickledb::{PickleDb, PickleDbDumpPolicy, SerializationMethod};
+use rand::Rng;
 
 mod commands;
 mod util;
@@ -49,8 +50,14 @@ impl EventHandler for Handler {
         }
 
         if !msg.channel_id.name(ctx).unwrap().contains(&String::from("bot")) {
-            println!("Would've assigned additional points to {}", msg.author.name)
-            
+            let points: u64 = rand::thread_rng().gen_range(5,11);
+            let current_points: u64 = db.get(&msg.author.id.to_string()).unwrap();
+            println!("Current points: {}", current_points);
+            let total_points = current_points + points;
+            println!("Total Points: {}", total_points);
+
+            db.set(&msg.author.id.to_string(),  &total_points).expect("Could not add points");
+
         }
     }
 }
