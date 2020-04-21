@@ -1,17 +1,25 @@
 use serenity::{
     framework::standard::{
-        macros::{help,group}, StandardFramework, Args, CommandResult, HelpOptions, help_commands, CommandGroup},
-    model::{channel::{Reaction, ReactionType, Message}, gateway::Ready, id::UserId},
+        help_commands,
+        macros::{group, help},
+        Args, CommandGroup, CommandResult, HelpOptions, StandardFramework,
+    },
+    model::{
+        channel::{Message, Reaction, ReactionType},
+        gateway::Ready,
+        id::UserId,
+    },
     prelude::*,
 };
 use std::collections::HashSet;
+mod checks;
 mod commands;
 mod util;
-mod checks;
 use crate::commands::general::*;
+use util::{find_guild_channel_by_id, starboard};
 
 #[group]
-#[commands(ping,about)]
+#[commands(ping, about)]
 struct General;
 
 struct Handler;
@@ -20,20 +28,24 @@ impl EventHandler for Handler {
         println!("{} logged in successfully!", ready.user.name);
     }
     fn reaction_add(&self, ctx: Context, reaction: Reaction) {
-        let msg = reaction.message(ctx.http).unwrap(); 
+        let msg = reaction.message(&ctx.http).unwrap();
         let reactions = msg.reactions;
         for r in &reactions {
             match &r.reaction_type {
-                ReactionType::Custom{animated,id,name} => if id.as_u64() == &701900676313383092 {
-                    if (r.count >= 2) {
-                        println!("Starboarded!");
+                ReactionType::Custom { animated, id, name } => {
+                    if id.as_u64() == &701900676313383092 {
+                        if (r.count >= 2) {
+                            starboard(&ctx, &reaction);
+                        }
                     }
-                },
-                ReactionType::Unicode(emoji) => if emoji == "⭐" {
-                    if (r.count >= 1) {
-                        println!("Starboarded!");
+                }
+                ReactionType::Unicode(emoji) => {
+                    if emoji == "⭐" {
+                        if (r.count >= 1) {
+                            starboard(&ctx, &reaction);
+                        }
                     }
-                },
+                }
                 __ => (),
             }
         }
@@ -41,7 +53,14 @@ impl EventHandler for Handler {
 }
 
 #[help]
-fn help(context: &mut Context, msg: &Message, args: Args, help_options: &'static HelpOptions, groups: &[&'static CommandGroup], owners: HashSet<UserId>) -> CommandResult {
+fn help(
+    context: &mut Context,
+    msg: &Message,
+    args: Args,
+    help_options: &'static HelpOptions,
+    groups: &[&'static CommandGroup],
+    owners: HashSet<UserId>,
+) -> CommandResult {
     help_commands::with_embeds(context, msg, args, help_options, groups, owners)
 }
 
@@ -58,15 +77,13 @@ fn main() {
             set.insert(info.owner.id);
 
             set
-        },
+        }
         Err(why) => panic!("Coudln't get application info: {:?}", why),
     };
 
     client.with_framework(
         StandardFramework::new()
-            .configure(|c| c
-                .prefix(&config.prefix.to_string())
-                .owners(owners))
+            .configure(|c| c.prefix(&config.prefix.to_string()).owners(owners))
             .help(&HELP)
             .group(&GENERAL_GROUP),
     );
@@ -75,4 +92,3 @@ fn main() {
         eprintln!("{:?}", err);
     }
 }
-

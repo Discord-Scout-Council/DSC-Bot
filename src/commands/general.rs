@@ -14,8 +14,8 @@ pub fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
 #[command]
 #[description = "Provides helpful information about the bot"]
 pub fn about(ctx: &mut Context, msg: &Message) -> CommandResult {
-    msg.channel_id.send_message(&ctx.http, |m | {
-        m.embed(|e | {
+    msg.channel_id.send_message(&ctx.http, |m| {
+        m.embed(|e| {
             e.title("Campmaster Constantine");
             e.description("A Discord Bot for Camp Quarantine");
             e.field("Creator", "<@118455061222260736>", false);
