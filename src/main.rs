@@ -5,7 +5,7 @@ use serenity::{
     prelude::*,
 };
 use std::{collections::HashSet};
-use pickledb::{PickleDb, PickleDbDumpPolicy, SerializationMethod};
+use ozone::*;
 use rand::Rng;
 
 mod commands;
@@ -43,15 +43,19 @@ impl EventHandler for Handler {
     }
 
     fn message(&self, ctx: Context, msg: Message) {
-        let mut db = PickleDb::new("points.db", PickleDbDumpPolicy::AutoDump, SerializationMethod::Json);
+        let mut db = ozone::open("points.db");
 
-        if let None = db.get::<u64>(&msg.author.id.to_string()) {
+  /*      if let None = db.get::<u64>(&msg.author.id.to_string()) {
+            println!("Did not find user {}", msg.author.id);
             db.set(&msg.author.id.to_string(), &0).unwrap();
-        }
+        }*/
 
         if !msg.channel_id.name(ctx).unwrap().contains(&String::from("bot")) {
             let points: u64 = rand::thread_rng().gen_range(5,11);
-            let current_points: u64 = db.get(&msg.author.id.to_string()).unwrap();
+            let current_points: u64 = match db.get(&msg.author.id.to_string()) {
+                Some(i) => i,
+                None => 0,
+            };
             println!("Current points: {}", current_points);
             let total_points = current_points + points;
             println!("Total Points: {}", total_points);
