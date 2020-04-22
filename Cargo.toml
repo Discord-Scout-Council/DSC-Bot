@@ -10,5 +10,5 @@ edition = "2018"
 serenity = "0.8.0"
 toml = "0.5.6"
 serde = {version = "1.0.104", features = ["derive"]}
-rusqlite = "0.22.0"
-rand = "0.5.5"
+rand = "0.7.3"
+pickledb = "0.4.1"
