@@ -82,7 +82,7 @@ impl EventHandler for Handler {
                 .unwrap()
                 .contains(&String::from("bot"))
             {
-                let points: u64 = rand::thread_rng().gen_range(5, 11);
+                let points: u64 = rand::thread_rng().gen_range(1, 4);
                 let current_points: u64 = match db.get(&msg.author.id.to_string()) {
                     Some(i) => i,
                     None => 0,
