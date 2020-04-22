@@ -1,3 +1,8 @@
+/*
+ *   Copyright (c) 2020 Owen Salter <owen@devosmium.xyz>
+ *   All rights reserved.
+ */
+
 use serenity::{
     framework::standard::{
         macros::{help,group}, StandardFramework, Args, CommandResult, HelpOptions, help_commands, CommandGroup},
@@ -5,8 +10,9 @@ use serenity::{
     prelude::*,
 };
 use std::{collections::HashSet};
-use ozone::*;
 use rand::Rng;
+
+use pickledb::*;
 
 mod commands;
 mod util;
@@ -43,9 +49,8 @@ impl EventHandler for Handler {
     }
 
     fn message(&self, ctx: Context, msg: Message) {
-        let mut db = ozone::open("points.db");
-
-  /*      if let None = db.get::<u64>(&msg.author.id.to_string()) {
+        let mut db = PickleDb::load_yaml("points.db", PickleDbDumpPolicy::AutoDump).unwrap();
+        /*if let None = db.get::<u64>(&msg.author.id.to_string()) {
             println!("Did not find user {}", msg.author.id);
             db.set(&msg.author.id.to_string(), &0).unwrap();
         }*/
@@ -72,6 +77,11 @@ fn help(context: &mut Context, msg: &Message, args: Args, help_options: &'static
 }
 
 fn main() {
+
+    // Load points database
+    if let Error = PickleDb::load_yaml("points.db", PickleDbDumpPolicy::AutoDump) {
+        PickleDb::new_yaml("points.db", PickleDbDumpPolicy::AutoDump);
+    }
     let config: util::BotConfig = util::parse_config();
 
     let token = config.token.clone();
