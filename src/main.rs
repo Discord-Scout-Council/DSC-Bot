@@ -24,7 +24,7 @@ use pickledb::*;
 mod checks;
 mod commands;
 mod util;
-use crate::commands::{general::*, points::*};
+use crate::commands::{general::*, points::*, owner::*};
 
 #[group]
 #[commands(ping,about,serverinfo)]
@@ -33,6 +33,10 @@ struct General;
 #[group]
 #[commands(points)]
 struct Points;
+
+#[group]
+#[commands(restart)]
+struct Owner;
 
 struct Handler;
 impl EventHandler for Handler {
@@ -132,7 +136,8 @@ fn main() {
             .configure(|c| c.prefix(&config.prefix.to_string()).owners(owners))
             .help(&HELP)
             .group(&GENERAL_GROUP)
-            .group(&POINTS_GROUP),
+            .group(&POINTS_GROUP)
+            .group(&OWNER_GROUP),
     );
 
     if let Err(err) = client.start() {
