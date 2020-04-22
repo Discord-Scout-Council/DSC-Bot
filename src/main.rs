@@ -17,11 +17,15 @@ use pickledb::*;
 mod commands;
 mod util;
 mod checks;
-use crate::commands::general::*;
+use crate::commands::{general::*, points::*};
 
 #[group]
 #[commands(ping,about)]
 struct General;
+
+#[group]
+#[commands(points)]
+struct Points;
 
 struct Handler;
 impl EventHandler for Handler {

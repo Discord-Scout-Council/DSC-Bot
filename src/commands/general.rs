@@ -1,3 +1,8 @@
+/*
+ *   Copyright (c) 2020 Owen Salter <owen@devosmium.xyz>
+ *   All rights reserved.
+ */
+
 use serenity::framework::standard::{macros::command, CommandResult, StandardFramework};
 use serenity::{model::channel::Message, prelude::*};
 
