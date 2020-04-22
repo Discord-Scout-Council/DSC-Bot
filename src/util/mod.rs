@@ -1,8 +1,8 @@
 use serde::Deserialize;
 use serenity::model::{
-    channel::{Message, Reaction, GuildChannel, Channel},
-    id::{ChannelId, GuildId},
+    channel::{Channel, GuildChannel, Message, Reaction},
     guild::Guild,
+    id::{ChannelId, GuildId},
 };
 use serenity::prelude::*;
 use std::{fs, sync::Arc};
@@ -58,17 +58,20 @@ pub fn find_guild_channel_by_id(ctx: &Context, id: u64, guild: GuildId) -> Optio
 
 pub fn starboard(ctx: &Context, reaction: &Reaction) {
     let star_message_id = reaction.message_id;
-    let star_message = reaction.channel_id.message(&ctx.http, star_message_id).unwrap();
-    let message_channel: Option<Arc<RwLock<GuildChannel>>> = match reaction.channel_id.to_channel(&ctx.http).unwrap() {
-        Channel::Guild(channel) => Some(channel),
-        _ => None,
-    };
+    let star_message = reaction
+        .channel_id
+        .message(&ctx.http, star_message_id)
+        .unwrap();
+    let message_channel: Option<Arc<RwLock<GuildChannel>>> =
+        match reaction.channel_id.to_channel(&ctx.http).unwrap() {
+            Channel::Guild(channel) => Some(channel),
+            _ => None,
+        };
 
     let guild: Option<Arc<RwLock<Guild>>> = match message_channel {
         Some(channel) => {
             let channel_rwlock = &Arc::try_unwrap(channel).unwrap();
-            let channel_read_guard = channel_rwlock.read();
-            let channel_act = &*channel_read_guard;
+            let channel_act = channel_rwlock.into_inner();
 
             channel_act.guild(&ctx)
         }
@@ -78,12 +81,12 @@ pub fn starboard(ctx: &Context, reaction: &Reaction) {
     let star_channel = match guild {
         Some(guild) => {
             let guild_rwlock = Arc::try_unwrap(guild).unwrap();
-            let guild_read_guard = guild_rwlock.read();
-            let guild_act = &*guild_read_guard;
+            //           let guild_read_guard = guild_rwlock.read();
+            let guild_act = &guild_rwlock.into_inner();
 
             guild_act.channel_id_from_name(&ctx, "cq-highlights")
-        },
-        None => None
+        }
+        None => None,
     };
     star_channel.unwrap().send_message(&ctx.http, |m| {
         m.embed(|mut e| {
@@ -92,7 +95,7 @@ pub fn starboard(ctx: &Context, reaction: &Reaction) {
 
             let avatar_url = match star_message.author.avatar_url() {
                 Some(url) => url,
-                None => star_message.author.default_avatar_url()
+                None => star_message.author.default_avatar_url(),
             };
 
             e.thumbnail(avatar_url);
