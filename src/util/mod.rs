@@ -1,6 +1,14 @@
+/*
+ *   Copyright (c) 2020 Owen Salter <owen@devosmium.xyz>
+ *   All rights reserved.
+ */
+
 use serde::Deserialize;
-use serenity::model::channel::Message;
+use serenity::model::{channel::Message, guild::Guild};
+use serenity::prelude::*;
 use std::fs;
+
+use std::sync::RwLockReadGuard;
 
 #[derive(Deserialize)]
 pub struct BotConfig {
@@ -32,4 +40,12 @@ pub fn parse_config() -> BotConfig {
     let config: BotConfig = toml::from_str(&contents).unwrap();
 
     return config;
+}
+
+pub fn extract_guild_from_msg<'a>(ctx: &Context, msg: &Message) -> RwLockReadGuard<'a, RawRwLock> {
+    let guild_arc = msg.guild_id.unwrap().to_guild_cached(&ctx.cache).unwrap();
+    let guild = guild_arc.read();
+
+    guild
+
 }
