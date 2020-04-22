@@ -68,9 +68,9 @@ pub fn starboard(ctx: &Context, reaction: &Reaction) {
             _ => None,
         };
 
-    let guild: Option<Arc<RwLock<Guild>>> = match message_channel {
+    let guild = match message_channel {
         Some(channel) => {
-            let channel_rwlock = &Arc::try_unwrap(channel).unwrap();
+            let channel_rwlock = Arc::try_unwrap(channel).unwrap();
             let channel_act = channel_rwlock.into_inner();
 
             channel_act.guild(&ctx)
