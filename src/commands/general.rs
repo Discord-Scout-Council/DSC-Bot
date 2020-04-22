@@ -24,6 +24,8 @@ pub fn about(ctx: &mut Context, msg: &Message) -> CommandResult {
             e.title("Campmaster Constantine");
             e.description("A Discord Bot for Camp Quarantine");
             e.field("Creator", "<@118455061222260736>", false);
+            e.field("Git", "[git.sr.ht](https://git.sr.ht/~muirrum/Campmaster-Constantine)", true);
+            e.field("Issues", "[todo.sr.ht](https://todo.sr.ht/~muirrum/Campmaster-Constantine)", true);
 
             e
         });
