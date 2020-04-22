@@ -8,6 +8,8 @@ use serenity::{model::channel::Message, prelude::*};
 use pickledb::*;
 
 #[command]
+#[description = "See how many points you have earned by chatting"]
+#[only_in(guilds)]
 pub fn points(ctx: &mut Context, msg: &Message) -> CommandResult {
 
     let db = PickleDb::load_yaml("points.db", PickleDbDumpPolicy::AutoDump).unwrap();
