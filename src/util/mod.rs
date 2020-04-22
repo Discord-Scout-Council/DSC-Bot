@@ -1,10 +1,11 @@
 use serde::Deserialize;
 use serenity::model::{
-    channel::{Message, Reaction, GuildChannel},
+    channel::{Message, Reaction, GuildChannel, Channel},
     id::{ChannelId, GuildId},
+    guild::Guild,
 };
 use serenity::prelude::*;
-use std::fs;
+use std::{fs, sync::Arc};
 
 use std::collections::HashMap;
 
@@ -58,12 +59,33 @@ pub fn find_guild_channel_by_id(ctx: &Context, id: u64, guild: GuildId) -> Optio
 pub fn starboard(ctx: &Context, reaction: &Reaction) {
     let star_message_id = reaction.message_id;
     let star_message = reaction.channel_id.message(&ctx.http, star_message_id).unwrap();
-    let star_channel = find_guild_channel_by_id(
-        &ctx,
-        697962591149883434,
-        reaction.guild_id.unwrap(),
-    ).unwrap();
-    star_channel.send_message(&ctx.http, |m| {
+    let message_channel: Option<Arc<RwLock<GuildChannel>>> = match reaction.channel_id.to_channel(&ctx.http).unwrap() {
+        Channel::Guild(channel) => Some(channel),
+        _ => None,
+    };
+
+    let guild: Option<Arc<RwLock<Guild>>> = match message_channel {
+        Some(channel) => {
+            let channel_rwlock = &Arc::try_unwrap(channel).unwrap();
+            let channel_read_guard = channel_rwlock.read();
+            let channel_act = &*channel_read_guard;
+
+            channel_act.guild(&ctx)
+        }
+        None => None,
+    };
+
+    let star_channel = match guild {
+        Some(guild) => {
+            let guild_rwlock = Arc::try_unwrap(guild).unwrap();
+            let guild_read_guard = guild_rwlock.read();
+            let guild_act = &*guild_read_guard;
+
+            guild_act.channel_id_from_name(&ctx, "cq-highlights")
+        },
+        None => None
+    };
+    star_channel.unwrap().send_message(&ctx.http, |m| {
         m.embed(|mut e| {
             e.title(&star_message.author.name);
             e.description(star_message.content);
