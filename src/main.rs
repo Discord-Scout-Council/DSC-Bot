@@ -108,7 +108,8 @@ fn main() {
                 .prefix(&config.prefix.to_string())
                 .owners(owners))
             .help(&HELP)
-            .group(&GENERAL_GROUP),
+            .group(&GENERAL_GROUP)
+            .group(&POINTS_GROUP),
     );
 
     if let Err(err) = client.start() {
