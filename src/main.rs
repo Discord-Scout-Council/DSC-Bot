@@ -20,7 +20,7 @@ mod checks;
 use crate::commands::{general::*, points::*};
 
 #[group]
-#[commands(ping,about)]
+#[commands(ping,about,serverinfo)]
 struct General;
 
 #[group]
