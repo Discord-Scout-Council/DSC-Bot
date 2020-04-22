@@ -1,3 +1,8 @@
+/*
+ *   Copyright (c) 2020 Owen Salter <owen@devosmium.xyz>
+ *   All rights reserved.
+ */
+
 use serenity::{
     framework::standard::{
         help_commands,

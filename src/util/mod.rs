@@ -1,3 +1,8 @@
+/*
+ *   Copyright (c) 2020 
+ *   All rights reserved.
+ */
+
 use serde::Deserialize;
 use serenity::model::{
     channel::{Channel, GuildChannel, Message, Reaction},
