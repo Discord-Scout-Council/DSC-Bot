@@ -4,5 +4,5 @@
  */
 
 pub mod general;
-pub mod points;
 pub mod owner;
+pub mod points;

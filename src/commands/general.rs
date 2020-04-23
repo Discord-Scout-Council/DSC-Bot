@@ -55,11 +55,17 @@ pub fn serverinfo(ctx: &mut Context, msg: &Message) -> CommandResult {
     };
 
     guild_owner.push_str("#");
-    guild_owner.push_str(&guild.owner_id.to_user(&ctx).unwrap().discriminator.to_string());
+    guild_owner.push_str(
+        &guild
+            .owner_id
+            .to_user(&ctx)
+            .unwrap()
+            .discriminator
+            .to_string(),
+    );
 
-    msg.channel_id.send_message(&ctx.http, |m | {
-
-        m.embed(|e | {
+    msg.channel_id.send_message(&ctx.http, |m| {
+        m.embed(|e| {
             e.title(&guild.name);
 
             e.field("Member Count", member_count.to_string(), true);

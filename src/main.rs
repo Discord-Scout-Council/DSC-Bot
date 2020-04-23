@@ -24,10 +24,10 @@ use pickledb::*;
 mod checks;
 mod commands;
 mod util;
-use crate::commands::{general::*, points::*, owner::*};
+use crate::commands::{general::*, owner::*, points::*};
 
 #[group]
-#[commands(ping,about,serverinfo)]
+#[commands(ping, about, serverinfo)]
 struct General;
 
 #[group]

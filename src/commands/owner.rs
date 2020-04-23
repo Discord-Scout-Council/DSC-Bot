@@ -10,8 +10,8 @@ use serenity::{model::channel::Message, model::guild::Member, prelude::*};
 #[description = "Restarts the bot"]
 #[owners_only]
 pub fn restart(ctx: &mut Context, msg: &Message) -> CommandResult {
-
-    msg.channel_id.say(&ctx.http, "Restarting bot, and applying new changes");
+    msg.channel_id
+        .say(&ctx.http, "Restarting bot, and applying new changes");
     ctx.shard.shutdown_clean();
     std::process::exit(0);
     Ok(())

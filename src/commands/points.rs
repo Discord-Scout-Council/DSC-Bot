@@ -5,23 +5,26 @@
 
 use pickledb::*;
 use serenity::framework::standard::{macros::command, CommandResult, StandardFramework};
-use serenity::{model::{id::UserId,channel::Message}, prelude::*};
+use serenity::{
+    model::{channel::Message, id::UserId},
+    prelude::*,
+};
 
 use std::cmp::Ordering;
 
 #[derive(Eq)]
 struct UserPoints {
     id: u64,
-    points: i32
+    points: i32,
 }
 
 struct UserIdPoints {
     id: UserId,
-    points: i32
+    points: i32,
 }
 
 impl Ord for UserPoints {
-    fn cmp(&self, other: &Self) -> Ordering{
+    fn cmp(&self, other: &Self) -> Ordering {
         other.points.cmp(&self.points)
     }
 }
@@ -77,7 +80,10 @@ pub fn leaderboard(ctx: &mut Context, msg: &Message) -> CommandResult {
     let mut points: Vec<UserPoints> = Vec::new();
 
     for s in db_keys.iter() {
-        points.push(UserPoints { id: s.parse::<u64>().unwrap(), points: db.get(s).unwrap()});
+        points.push(UserPoints {
+            id: s.parse::<u64>().unwrap(),
+            points: db.get(s).unwrap(),
+        });
     }
 
     let mut points_vec: Vec<&UserPoints> = points.iter().collect();
@@ -87,12 +93,15 @@ pub fn leaderboard(ctx: &mut Context, msg: &Message) -> CommandResult {
 
     for p in points_vec {
         let user_id: UserId = p.id.into();
-        points_id_vec.push(UserIdPoints { id: user_id, points: p.points });
+        points_id_vec.push(UserIdPoints {
+            id: user_id,
+            points: p.points,
+        });
     }
 
     let mut topList: Vec<&UserIdPoints> = vec![];
 
-    for (i,p) in points_id_vec.iter().enumerate() {
+    for (i, p) in points_id_vec.iter().enumerate() {
         if (i <= 5) {
             topList.push(&p);
         } else {
@@ -112,24 +121,25 @@ pub fn leaderboard(ctx: &mut Context, msg: &Message) -> CommandResult {
         leaderboard.push(message);
     }
 
-    msg.channel_id.send_message(&ctx.http, |m| {
+    msg.channel_id
+        .send_message(&ctx.http, |m| {
+            m.embed(|e| {
+                e.title(&guild.name);
 
-        m.embed(|e | {
-            e.title(&guild.name);
+                e.fields(vec![
+                    ("1.", &leaderboard[0], false),
+                    ("2.", &leaderboard[1], false),
+                    ("3.", &leaderboard[2], false),
+                    ("4.", &leaderboard[3], false),
+                    ("5.", &leaderboard[4], false),
+                ]);
 
-            e.fields(vec![
-                ("1.", &leaderboard[0], false),
-                ("2.", &leaderboard[1], false),
-                ("3.", &leaderboard[2], false),
-                ("4.", &leaderboard[3], false),
-                ("5.", &leaderboard[4], false)
-            ]);
+                e
+            });
 
-            e
-        });
-
-        m
-    }).unwrap();
+            m
+        })
+        .unwrap();
 
     Ok(())
 }
