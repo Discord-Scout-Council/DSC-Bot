@@ -24,15 +24,19 @@ use pickledb::*;
 mod checks;
 mod commands;
 mod util;
-use crate::commands::{general::*, points::*};
+use crate::commands::{general::*, points::*, owner::*};
 
 #[group]
-#[commands(ping, about)]
+#[commands(ping,about,serverinfo)]
 struct General;
 
 #[group]
 #[commands(points, leaderboard)]
 struct Points;
+
+#[group]
+#[commands(restart)]
+struct Owner;
 
 struct Handler;
 impl EventHandler for Handler {
@@ -78,7 +82,7 @@ impl EventHandler for Handler {
                 .unwrap()
                 .contains(&String::from("bot"))
             {
-                let points: u64 = rand::thread_rng().gen_range(5, 11);
+                let points: u64 = rand::thread_rng().gen_range(1, 4);
                 let current_points: u64 = match db.get(&msg.author.id.to_string()) {
                     Some(i) => i,
                     None => 0,
@@ -132,7 +136,8 @@ fn main() {
             .configure(|c| c.prefix(&config.prefix.to_string()).owners(owners))
             .help(&HELP)
             .group(&GENERAL_GROUP)
-            .group(&POINTS_GROUP),
+            .group(&POINTS_GROUP)
+            .group(&OWNER_GROUP),
     );
 
     if let Err(err) = client.start() {

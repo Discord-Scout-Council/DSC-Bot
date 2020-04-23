@@ -13,3 +13,7 @@ tasks:
   - build: |
       cd campmasterconstantine
       cargo build
+  - deploy: |
+      cd campmasterconstantine
+      cargo build --release
+      scp target/release/campmaster-constantine osalter@kronos.devosmium.xyz:/usr/bot/campmasterconstantine/cc-update
