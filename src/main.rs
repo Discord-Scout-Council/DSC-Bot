@@ -25,7 +25,7 @@ use rusqlite::{params, Connection, Result};
 mod checks;
 mod commands;
 mod util;
-use crate::commands::{general::*, owner::*, points::*, moderation::*};
+use crate::commands::{general::*, moderation::*, owner::*, points::*};
 
 #[group]
 #[commands(ping, about, serverinfo)]
@@ -122,10 +122,15 @@ fn main() {
     }
 
     let strikes_conn = Connection::open("strikes.db").unwrap();
-    strikes_conn.execute("CREATE TABLE IF NOT EXISTS strikes (
+    strikes_conn
+        .execute(
+            "CREATE TABLE IF NOT EXISTS strikes (
                                     id INTEGER PRIMARY KEY,
                                     userid TEXT NOT NULL,
-                                    reason TEXT)", params![]).unwrap();
+                                    reason TEXT)",
+            params![],
+        )
+        .unwrap();
 
     let config: util::BotConfig = util::parse_config();
 

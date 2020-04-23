@@ -3,16 +3,16 @@
  *   All rights reserved.
  */
 
-use serenity::framework::standard::{macros::command, CommandResult, StandardFramework, Args};
-use serenity::{model::channel::Message, model::guild::Member, prelude::*};
+use rusqlite::{params, Connection, Result};
+use serenity::framework::standard::{macros::command, Args, CommandResult, StandardFramework};
 use serenity::model::id::UserId;
-use rusqlite::{Connection, params, Result};
+use serenity::{model::channel::Message, model::guild::Member, prelude::*};
 
 use crate::checks::*;
 
 struct Strike {
     user: UserId,
-    reason: Option<String>
+    reason: Option<String>,
 }
 
 #[command]
@@ -22,8 +22,16 @@ struct Strike {
 #[checks(Moderator)]
 pub fn strike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let strike_conn = Connection::open("strikes.db").unwrap();
-    let strike = Strike {user: args.parse::<UserId>().unwrap(), reason: Some(String::from(args.advance().rest()))};
-    strike_conn.execute("INSERT INTO strikes (userid, reason) VALUES (?1, ?2)", params![strike.user.as_u64().to_string(), strike.reason]).unwrap();
+    let strike = Strike {
+        user: args.parse::<UserId>().unwrap(),
+        reason: Some(String::from(args.advance().rest())),
+    };
+    strike_conn
+        .execute(
+            "INSERT INTO strikes (userid, reason) VALUES (?1, ?2)",
+            params![strike.user.as_u64().to_string(), strike.reason],
+        )
+        .unwrap();
 
     msg.channel_id.say(&ctx.http, "Struck the user.").unwrap();
 
@@ -35,12 +43,16 @@ pub fn strike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 #[only_in(guilds)]
 #[min_args(1)]
 #[checks(Moderator)]
-pub fn strikelog(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult{
+pub fn strikelog(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let strike_conn = Connection::open("strikes.db").unwrap();
     let target_user = args.parse::<UserId>().unwrap();
 
-    let mut stmt = strike_conn.prepare("SELECT reason FROM strikes WHERE userid = (?)").unwrap();
-    let mut rows = stmt.query(params![target_user.as_u64().to_string()]).unwrap();
+    let mut stmt = strike_conn
+        .prepare("SELECT reason FROM strikes WHERE userid = (?)")
+        .unwrap();
+    let mut rows = stmt
+        .query(params![target_user.as_u64().to_string()])
+        .unwrap();
 
     let mut reasons: Vec<String> = Vec::new();
     while let Some(row) = rows.next().unwrap() {
@@ -50,30 +62,31 @@ pub fn strikelog(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
     let mut result_vec: Vec<(usize, String, bool)> = Vec::new();
 
     for (i, r) in reasons.iter().enumerate() {
-        result_vec.push((i+1, r.clone(), false));
+        result_vec.push((i + 1, r.clone(), false));
     }
 
-    msg.channel_id.send_message(&ctx.http, |m| {
-        m.embed(|e | {
-            let mut title = String::from("Strikes for ");
-            title.push_str(&target_user.to_user(&ctx).unwrap().name);
-            e.title(title);
+    msg.channel_id
+        .send_message(&ctx.http, |m| {
+            m.embed(|e| {
+                let mut title = String::from("Strikes for ");
+                title.push_str(&target_user.to_user(&ctx).unwrap().name);
+                e.title(title);
 
-            e.fields(result_vec);
+                e.fields(result_vec);
 
-            let mut footer = String::from("Requested by ");
-            footer.push_str(&msg.author.name);
-            e.footer(|f | {
-                f.text(footer);
-                f
+                let mut footer = String::from("Requested by ");
+                footer.push_str(&msg.author.name);
+                e.footer(|f| {
+                    f.text(footer);
+                    f
+                });
+
+                e
             });
 
-            e
-        });
-
-        m
-    }).unwrap();
-
+            m
+        })
+        .unwrap();
 
     Ok(())
 }
