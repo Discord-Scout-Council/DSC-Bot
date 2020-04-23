@@ -6,6 +6,7 @@
 use serenity::framework::standard::{macros::command, CommandResult, StandardFramework};
 use serenity::{model::channel::Message, model::guild::Member, prelude::*};
 use pickledb::{PickleDb, PickleDbDumpPolicy};
+use crate::util::data::get_pickle_database;
 
 #[command]
 #[description = "Restarts the bot"]
@@ -22,7 +23,7 @@ pub fn restart(ctx: &mut Context, msg: &Message) -> CommandResult {
 #[description = "Initializes the Guild Cache"]
 #[owners_only]
 pub fn initcache(ctx: &mut Context, msg: &Message) -> CommandResult {
-    let mut guild_cache = PickleDb::load_yaml("guild_cache.db", PickleDbDumpPolicy::AutoDump)?;
+    let mut guild_cache = get_pickle_database(msg.guild_id.unwrap().as_u64(), &"cache.db");
     guild_cache.set("current_qotd", &0)?;
     msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {

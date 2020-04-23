@@ -1,3 +1,8 @@
+/*
+ *   Copyright (c) 2020 Owen Salter <owen@devosmium.xyz>
+ *   All rights reserved.
+ */
+pub mod data;
 use serde::Deserialize;
 use serenity::model::channel::Message;
 use std::fs;

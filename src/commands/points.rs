@@ -10,6 +10,8 @@ use serenity::{
     prelude::*,
 };
 
+use crate::util::data::get_pickle_database;
+
 use std::cmp::Ordering;
 
 #[derive(Eq)]
@@ -45,7 +47,7 @@ impl PartialEq for UserPoints {
 #[description = "See how many points you have earned by chatting"]
 #[only_in(guilds)]
 pub fn points(ctx: &mut Context, msg: &Message) -> CommandResult {
-    let db = PickleDb::load_yaml("points.db", PickleDbDumpPolicy::AutoDump).unwrap();
+    let db = get_pickle_database(msg.guild_id.unwrap().as_u64(), &"points.db");
     let author_id = msg.author.id.as_u64();
 
     let points = match db.get(&author_id.to_string()) {

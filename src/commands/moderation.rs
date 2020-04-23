@@ -10,6 +10,8 @@ use serenity::{model::channel::Message, model::guild::Member, prelude::*};
 
 use crate::checks::*;
 
+use crate::util::data::get_strike_database;
+
 struct Strike {
     user: UserId,
     reason: Option<String>,
@@ -21,7 +23,7 @@ struct Strike {
 #[min_args(1)]
 #[checks(Moderator)]
 pub fn strike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let strike_conn = Connection::open("strikes.db").unwrap();
+    let strike_conn = get_strike_database(&msg.guild_id.unwrap().as_u64());
     let strike = Strike {
         user: args.parse::<UserId>().unwrap(),
         reason: Some(String::from(args.advance().rest())),
@@ -44,7 +46,7 @@ pub fn strike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 #[min_args(1)]
 #[checks(Moderator)]
 pub fn strikelog(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let strike_conn = Connection::open("strikes.db").unwrap();
+    let strike_conn = get_strike_database(&msg.guild_id.unwrap().as_u64());
     let target_user = args.parse::<UserId>().unwrap();
 
     let mut stmt = strike_conn

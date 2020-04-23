@@ -27,6 +27,7 @@ mod checks;
 mod commands;
 mod util;
 use crate::commands::{general::*, moderation::*, owner::*, points::*, qotd::*};
+use util::*;
 
 #[group]
 #[commands(ping, about, serverinfo)]
@@ -81,7 +82,7 @@ impl EventHandler for Handler {
 
     fn message(&self, ctx: Context, msg: Message) {
         let config = util::parse_config();
-        let mut db = PickleDb::load_yaml("points.db", PickleDbDumpPolicy::AutoDump).unwrap();
+        let mut db = util::data::get_pickle_database(msg.guild_id.unwrap().as_u64(), &String::from("points.db"));
         /*if let None = db.get::<u64>(&msg.author.id.to_string()) {
             println!("Did not find user {}", msg.author.id);
             db.set(&msg.author.id.to_string(), &0).unwrap();
@@ -123,19 +124,6 @@ fn help(
 }
 
 fn main() {
-    // Load points database
-    if let Error = PickleDb::load_yaml("points.db", PickleDbDumpPolicy::AutoDump) {
-        PickleDb::new_yaml("points.db", PickleDbDumpPolicy::AutoDump);
-    }
-
-    // Load QOTD database
-    if let Error = PickleDb::load_yaml("qotd.db", PickleDbDumpPolicy::AutoDump) {
-        PickleDb::new_yaml("qotd.db", PickleDbDumpPolicy::AutoDump);
-    }
-
-    if let Error = PickleDb::load_yaml("guild_cache.db", PickleDbDumpPolicy::AutoDump) {
-        PickleDb::new_yaml("guild_cache.db", PickleDbDumpPolicy::AutoDump);
-    }
 
     let strikes_conn = Connection::open("strikes.db").unwrap();
     strikes_conn
