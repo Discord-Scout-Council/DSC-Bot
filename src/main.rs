@@ -37,7 +37,7 @@ struct General;
 struct Points;
 
 #[group]
-#[commands(restart)]
+#[commands(restart, initcache)]
 struct Owner;
 
 #[group]
@@ -131,6 +131,10 @@ fn main() {
     // Load QOTD database
     if let Error = PickleDb::load_yaml("qotd.db", PickleDbDumpPolicy::AutoDump) {
         PickleDb::new_yaml("qotd.db", PickleDbDumpPolicy::AutoDump);
+    }
+
+    if let Error = PickleDb::load_yaml("guild_cache.db", PickleDbDumpPolicy::AutoDump) {
+        PickleDb::new_yaml("guild_cache.db", PickleDbDumpPolicy::AutoDump);
     }
 
     let strikes_conn = Connection::open("strikes.db").unwrap();
