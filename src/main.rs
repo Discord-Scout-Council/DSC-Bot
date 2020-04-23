@@ -26,7 +26,7 @@ use rusqlite::{params, Connection, Result};
 mod checks;
 mod commands;
 mod util;
-use crate::commands::{general::*, moderation::*, owner::*, points::*};
+use crate::commands::{general::*, moderation::*, owner::*, points::*, qotd::*};
 
 #[group]
 #[commands(ping, about, serverinfo)]
@@ -43,6 +43,10 @@ struct Owner;
 #[group]
 #[commands(strike, strikelog)]
 struct Moderation;
+
+#[group]
+#[commands(qotd)]
+struct Qotd;
 
 struct Handler;
 impl EventHandler for Handler {
@@ -124,6 +128,11 @@ fn main() {
         PickleDb::new_yaml("points.db", PickleDbDumpPolicy::AutoDump);
     }
 
+    // Load QOTD database
+    if let Error = PickleDb::load_yaml("qotd.db", PickleDbDumpPolicy::AutoDump) {
+        PickleDb::new_yaml("qotd.db", PickleDbDumpPolicy::AutoDump);
+    }
+
     let strikes_conn = Connection::open("strikes.db").unwrap();
     strikes_conn
         .execute(
@@ -158,7 +167,8 @@ fn main() {
             .group(&GENERAL_GROUP)
             .group(&POINTS_GROUP)
             .group(&OWNER_GROUP)
-            .group(&MODERATION_GROUP),
+            .group(&MODERATION_GROUP)
+            .group(&QOTD_GROUP),
     );
 
     if let Err(err) = client.start() {
