@@ -10,7 +10,7 @@ use serenity::{model::channel::Message, model::guild::Member, prelude::*};
 
 use crate::checks::*;
 
-use crate::util::data::get_strike_database;
+use crate::util::data::{get_strike_database, get_global_pickle_database};
 
 struct Strike {
     user: UserId,
@@ -89,6 +89,57 @@ pub fn strikelog(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
             m
         })
         .unwrap();
+
+    Ok(())
+}
+
+#[command]
+#[description = "Manages the bad words filter"]
+#[sub_commands(add)]
+pub fn wordfilter(ctx: &mut Context, msg: &Message) -> CommandResult {
+
+    Ok(())
+}
+
+#[command]
+#[description = "Adds a word to the bad words list"]
+#[checks(Moderator)]
+#[sub_commands(global)]
+pub fn add(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+
+    msg.reply(&ctx, "Called word management")?;
+
+    Ok(())
+}
+
+#[command]
+#[description = "Adds a word to the global list"]
+#[checks(Moderator)]
+pub fn global (ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    let mut db = get_global_pickle_database("banned_words.db");
+
+    db.set(args.rest(), &1)?;
+
+    msg.channel_id.send_message(&ctx.http, |m| {
+        m.embed(|e| {
+            e.title("Banned Words List");
+            let mut description = String::from("Added ");
+            description.push_str(args.rest());
+            description.push_str(" to the global word filter");
+            e.description(description);
+            e.footer(|f| {
+                let mut footer = String::from("Requested by ");
+                footer.push_str(&msg.author.name);
+                f.text(footer);
+
+                f
+            });
+
+            e
+        });
+
+        m
+    })?;
 
     Ok(())
 }

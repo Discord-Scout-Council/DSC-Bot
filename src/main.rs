@@ -17,6 +17,7 @@ use serenity::{
         user::OnlineStatus
     },
     prelude::*,
+    utils::Colour
 };
 use std::collections::HashSet;
 
@@ -42,7 +43,7 @@ struct Points;
 struct Owner;
 
 #[group]
-#[commands(strike, strikelog)]
+#[commands(strike, strikelog, wordfilter)]
 struct Moderation;
 
 #[group]
