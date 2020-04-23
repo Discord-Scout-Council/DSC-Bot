@@ -22,7 +22,7 @@ struct UserIdPoints {
 
 impl Ord for UserPoints {
     fn cmp(&self, other: &Self) -> Ordering{
-        self.points.cmp(&other.points)
+        other.points.cmp(&self.points)
     }
 }
 
