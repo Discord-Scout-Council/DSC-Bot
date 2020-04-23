@@ -29,3 +29,51 @@ pub fn strike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 
     Ok(())
 }
+
+#[command]
+#[description = "Displays a list of strikes given to a user"]
+#[only_in(guilds)]
+#[min_args(1)]
+#[checks(Moderator)]
+pub fn strikelog(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult{
+    let strike_conn = Connection::open("strikes.db").unwrap();
+    let target_user = args.parse::<UserId>().unwrap();
+
+    let mut stmt = strike_conn.prepare("SELECT reason FROM strikes WHERE userid = (?)").unwrap();
+    let mut rows = stmt.query(params![target_user.as_u64().to_string()]).unwrap();
+
+    let mut reasons: Vec<String> = Vec::new();
+    while let Some(row) = rows.next().unwrap() {
+        reasons.push(row.get(0)?);
+    }
+
+    let mut result_vec: Vec<(usize, String, bool)> = Vec::new();
+
+    for (i, r) in reasons.iter().enumerate() {
+        result_vec.push((i+1, r.clone(), false));
+    }
+
+    msg.channel_id.send_message(&ctx.http, |m| {
+        m.embed(|e | {
+            let mut title = String::from("Strikes for ");
+            title.push_str(&target_user.to_user(&ctx).unwrap().name);
+            e.title(title);
+
+            e.fields(result_vec);
+
+            let mut footer = String::from("Requested by ");
+            footer.push_str(&msg.author.name);
+            e.footer(|f | {
+                f.text(footer);
+                f
+            });
+
+            e
+        });
+
+        m
+    }).unwrap();
+
+
+    Ok(())
+}

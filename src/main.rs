@@ -40,7 +40,7 @@ struct Points;
 struct Owner;
 
 #[group]
-#[commands(strike)]
+#[commands(strike, strikelog)]
 struct Moderation;
 
 struct Handler;
