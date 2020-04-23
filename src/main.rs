@@ -12,8 +12,9 @@ use serenity::{
     },
     model::{
         channel::{Message, Reaction, ReactionType},
-        gateway::Ready,
+        gateway::{Ready, Activity, ActivityType},
         id::UserId,
+        user::OnlineStatus
     },
     prelude::*,
 };
@@ -47,6 +48,8 @@ struct Handler;
 impl EventHandler for Handler {
     fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} logged in successfully!", ready.user.name);
+        let activity = Activity::streaming("Pioneering", "https://devosmium.xyz");
+        ctx.set_presence(Some(activity), OnlineStatus::Online);
     }
     fn reaction_add(&self, ctx: Context, reaction: Reaction) {
         let msg = reaction.message(ctx.http).unwrap();
