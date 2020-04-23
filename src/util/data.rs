@@ -4,10 +4,11 @@
  */
 
 use pickledb::{PickleDb, PickleDbDumpPolicy};
-use rusqlite::Connection;
+use rusqlite::{Connection, params};
+use std::fs::create_dir_all;
 
-pub fn get_pickle_database(guild_id: u64, db_name: String) -> PickleDb {
-    let path = construct_data_path(guild_id, db_name);
+pub fn get_pickle_database(guild_id: &u64, db_name: &str) -> PickleDb {
+    let path = construct_data_path(&guild_id, &db_name);
 
     let db = match PickleDb::load_yaml(&path, PickleDbDumpPolicy::AutoDump) {
         Ok(d) => d,
@@ -18,17 +19,37 @@ pub fn get_pickle_database(guild_id: u64, db_name: String) -> PickleDb {
 
 }
 
-fn construct_data_path(guild_id: u64, db_name: String) -> String {
+fn construct_data_path(guild_id: &u64, db_name: &str) -> String {
     let mut path = String::from("./data/");
     path.push_str(&guild_id.to_string());
     path.push_str(&"/");
+    create_directories(&path);
     path.push_str(&db_name);
 
     path
 }
 
-pub fn get_sqlite_database(guild_id: u64, db_name: String) -> Connection {
-    let mut conn = Connection::open(construct_data_path(guild_id, db_name)).unwrap();
+fn create_directories(path: &String) {
+    create_dir_all(path).unwrap();
+}
+
+fn get_sqlite_database(guild_id: &u64, db_name: &str) -> Connection {
+    let mut conn = Connection::open(construct_data_path(&guild_id, &db_name)).unwrap();
+
+    conn
+}
+
+pub fn get_strike_database(guild_id: &u64) -> Connection {
+    let conn = get_sqlite_database(guild_id, &"strikes.db");
+    conn
+    .execute(
+        "CREATE TABLE IF NOT EXISTS strikes (
+                                id INTEGER PRIMARY KEY,
+                                userid TEXT NOT NULL,
+                                reason TEXT)",
+        params![],
+    )
+    .unwrap();
 
     conn
 }

@@ -9,6 +9,7 @@ use serenity::{model::channel::Message, model::guild::Member, prelude::*};
 use crate::checks::*;
 use pickledb::{PickleDb, PickleDbDumpPolicy};
 use std::cmp::Ordering;
+use crate::util::data::get_pickle_database;
 
 #[derive(Eq)]
 struct Question {
@@ -82,8 +83,8 @@ pub fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[description = "Runs the Question of the Day based on the last run question"]
 #[checks(Moderator)]
 pub fn run(ctx: &mut Context, msg: &Message) -> CommandResult {
-    let db = PickleDb::load_yaml("qotd.db", PickleDbDumpPolicy::AutoDump)?;
-    let mut guild_cache = PickleDb::load_yaml("guild_cache.db", PickleDbDumpPolicy::AutoDump)?;
+    let db = get_pickle_database(msg.guild_id.unwrap().as_u64(), &String::from("qotd.db"));
+    let mut guild_cache = get_pickle_database(msg.guild_id.unwrap().as_u64(), &"cache.db");
     let current_num: i32 = guild_cache.get::<i32>("current_qotd").unwrap() + 1;
     let next_question = Question {num: current_num + 1, text: db.get(&current_num.to_string()).unwrap()};
 
