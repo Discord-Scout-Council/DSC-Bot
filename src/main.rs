@@ -31,7 +31,7 @@ use crate::commands::{general::*, points::*};
 struct General;
 
 #[group]
-#[commands(points)]
+#[commands(points, leaderboard)]
 struct Points;
 
 struct Handler;
