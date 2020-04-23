@@ -49,7 +49,7 @@ impl EventHandler for Handler {
     fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} logged in successfully!", ready.user.name);
         let activity = Activity::streaming("Pioneering", "https://devosmium.xyz");
-        ctx.set_presence(Some(activity), OnlineStatus::Online);
+        ctx.set_presence(Some(activity), OnlineStatus::DoNotDisturb);
     }
     fn reaction_add(&self, ctx: Context, reaction: Reaction) {
         let msg = reaction.message(ctx.http).unwrap();
