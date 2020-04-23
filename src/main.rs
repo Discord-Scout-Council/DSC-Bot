@@ -80,7 +80,32 @@ impl EventHandler for Handler {
         }
     }
 
+    //* Points
     fn message(&self, ctx: Context, msg: Message) {
+        //* Banned Words
+        if util::moderation::contains_banned_word(&msg.content) {
+            msg.channel_id.send_message(&ctx.http, |m| {
+                m.embed(|e| {
+
+                    let mut mention = String::from("<@");
+                    mention.push_str(&msg.author.id.as_u64().to_string());
+                    mention.push_str(">");
+
+                    e.title("Warning - Bad Language");
+                    e.description("Do not use poor language or slurs in this server.");
+                    e.fields(vec![
+                        ("User:", mention, false)
+                    ]);
+
+                    e.color(Colour::RED);
+
+                    e
+                });
+
+                m
+            }).unwrap();
+            msg.delete(&ctx).unwrap();
+        }
         let config = util::parse_config();
         let mut db = util::data::get_pickle_database(msg.guild_id.unwrap().as_u64(), &String::from("points.db"));
         /*if let None = db.get::<u64>(&msg.author.id.to_string()) {
