@@ -38,9 +38,26 @@ impl PartialEq for Question {
 
 #[command]
 #[description = "Manages the Question of the Day"]
+#[usage("qotd add <Question>")]
+#[usage("qotd run")]
+#[usage("qotd suggest <Question>")]
 #[sub_commands(add, run, suggest)]
 pub fn qotd(ctx: &mut Context, msg: &Message) -> CommandResult {
-    msg.channel_id.say(&ctx.http, "Base command");
+    msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Question of the Day");
+            e.description("Manages and runs the Questions of the Day");
+            e.fields(vec![
+                ("Add", "qotd add <Question>", false),
+                ("Run", "qotd run", false),
+                ("Suggest", "qotd suggest <Question>", false)
+            ]);
+
+            e
+        });
+
+        m
+    })?;
 
     Ok(())
 
