@@ -10,6 +10,7 @@ use crate::checks::*;
 use pickledb::{PickleDb, PickleDbDumpPolicy};
 use std::cmp::Ordering;
 use crate::util::data::get_pickle_database;
+use serenity::utils::Colour;
 
 #[derive(Eq)]
 struct Question {
@@ -37,7 +38,7 @@ impl PartialEq for Question {
 
 #[command]
 #[description = "Manages the Question of the Day"]
-#[sub_commands(add, run)]
+#[sub_commands(add, run, suggest)]
 pub fn qotd(ctx: &mut Context, msg: &Message) -> CommandResult {
     msg.channel_id.say(&ctx.http, "Base command");
 
@@ -115,4 +116,99 @@ pub fn run(ctx: &mut Context, msg: &Message) -> CommandResult {
     guild_cache.set("current_qotd", &current_num)?;
 
     Ok(())
+}
+
+#[command]
+#[description = "Suggests a Question of the Day in exchange for points"]
+pub fn suggest(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    let mut points_db = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "points.db");
+    let mut guild_cache = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "cache.db");
+    let mut qotd_suggest_db = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "qotd-suggest.db");
+
+    let user_points = match points_db.get(&msg.author.id.as_u64().to_string()) {
+        Some(p) => p,
+        None => 0,
+    };
+
+
+    let point_cost = match guild_cache.get("qotd_suggest_cost") {
+        Some(c) => c,
+        None => {
+            guild_cache.set("qotd_suggest_cost", &10)?;
+            10
+        },
+    };
+
+    if user_points < point_cost {
+        msg.reply(&ctx, "You do not have enough points to suggest a question!")?;
+    } else {
+        let new_points = user_points - point_cost;
+        if let Result::Ok(()) = points_db.set(&msg.author.id.as_u64().to_string(), &new_points) {
+            let highest_num = get_highest_qotd(&qotd_suggest_db);
+            let current_num = highest_num + 1;
+            qotd_suggest_db.set(&current_num.to_string(), &args.rest())?;
+            msg.channel_id.send_message(&ctx, |m| {
+                m.embed(|e| {
+                    e.title("Question of the Day");
+                    e.description("Sucessfully submitted your question!");
+                    e.colour(Colour::DARK_GREEN);
+
+                    e
+                });
+
+                m
+            })?;
+            println!("Finding qotd channel");
+            let guild_arc = msg.guild(&ctx).unwrap();
+            let guild = guild_arc.read();
+            let qotd_channel = guild.channel_id_from_name(&ctx, "qotd-suggestions").unwrap();
+            qotd_channel.send_message(&ctx, |m| {
+                m.embed(|e| {
+                    e.title("Question of the Day Suggestion");
+                    e.description(&args.rest());
+                    e.colour(Colour::DARK_GREEN);
+
+                    e.field("Submitter", &msg.author.name, false);
+
+                    e
+                });
+
+                m
+            })?;
+        } else {
+            msg.channel_id.send_message(&ctx, |m| {
+                m.embed(|e| {
+                    e.title("Question of the Day");
+                    e.description("Could not submit your question. Database error.");
+                    e.colour(Colour::RED);
+
+                    e
+                });
+
+                m
+            })?;
+        }
+    }
+
+    Ok(())
+}
+
+fn get_highest_qotd(db: &PickleDb) -> i32 {
+    println!("Getting all keys");
+    let db_keys = db.get_all();
+
+    let mut questions: Vec<Question> = Vec::new();
+
+    println!("Sorting questionsn");
+    for q in db_keys.iter() {
+        questions.push(Question { num: q.parse::<i32>().unwrap(), text: db.get(q).unwrap()});
+    }
+
+    questions.sort();
+    let highest_num = match questions.first() {
+        Some(q) => q.num,
+        None => 0,
+    };
+
+    highest_num
 }
