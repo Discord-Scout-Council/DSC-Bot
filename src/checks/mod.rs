@@ -1,3 +1,13 @@
+/*
+ *   Copyright (c) 2020 Owen Salter <owen@devosmium.xyz>
+ *   All rights reserved.
+ */
+
+/*
+ *   Copyright (c) 2020 Owen Salter <owen@devosmium.xyz>
+ *   All rights reserved.
+ */
+
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::check, Args, CheckResult, CommandOptions},
