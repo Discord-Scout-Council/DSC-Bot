@@ -20,11 +20,12 @@ use serenity::{
 use std::collections::HashSet;
 
 use pickledb::*;
+use rusqlite::{params, Connection, Result};
 
 mod checks;
 mod commands;
 mod util;
-use crate::commands::{general::*, owner::*, points::*};
+use crate::commands::{general::*, owner::*, points::*, moderation::*};
 
 #[group]
 #[commands(ping, about, serverinfo)]
@@ -37,6 +38,10 @@ struct Points;
 #[group]
 #[commands(restart)]
 struct Owner;
+
+#[group]
+#[commands(strike)]
+struct Moderation;
 
 struct Handler;
 impl EventHandler for Handler {
@@ -115,6 +120,13 @@ fn main() {
     if let Error = PickleDb::load_yaml("points.db", PickleDbDumpPolicy::AutoDump) {
         PickleDb::new_yaml("points.db", PickleDbDumpPolicy::AutoDump);
     }
+
+    let strikes_conn = Connection::open("strikes.db").unwrap();
+    strikes_conn.execute("CREATE TABLE IF NOT EXISTS strikes (
+                                    id INTEGER PRIMARY KEY,
+                                    userid TEXT NOT NULL,
+                                    reason TEXT)", params![]).unwrap();
+
     let config: util::BotConfig = util::parse_config();
 
     let token = config.token.clone();
@@ -137,7 +149,8 @@ fn main() {
             .help(&HELP)
             .group(&GENERAL_GROUP)
             .group(&POINTS_GROUP)
-            .group(&OWNER_GROUP),
+            .group(&OWNER_GROUP)
+            .group(&MODERATION_GROUP),
     );
 
     if let Err(err) = client.start() {
