@@ -27,6 +27,7 @@ mod checks;
 mod commands;
 mod util;
 use crate::commands::{general::*, moderation::*, owner::*, points::*, qotd::*};
+use util::starboard;
 
 #[group]
 #[commands(ping, about, serverinfo)]
@@ -56,21 +57,14 @@ impl EventHandler for Handler {
         ctx.set_presence(Some(activity), OnlineStatus::DoNotDisturb);
     }
     fn reaction_add(&self, ctx: Context, reaction: Reaction) {
-        let msg = reaction.message(ctx.http).unwrap();
-        let reactions = msg.reactions;
-        for r in &reactions {
+        let msg = reaction.message(&ctx.http).unwrap();
+        let reactions = &msg.reactions;
+        for r in reactions.iter() {
             match &r.reaction_type {
-                ReactionType::Custom { animated, id, name } => {
-                    if id.as_u64() == &701900676313383092 {
-                        if (r.count >= 2) {
-                            starboard(&ctx, &reaction);
-                        }
-                    }
-                }
                 ReactionType::Unicode(emoji) => {
                     if emoji == "⭐" {
                         if (r.count >= 1) {
-                            starboard(&ctx, &reaction);
+                            starboard(&ctx, &msg);
                         }
                     }
                 }
