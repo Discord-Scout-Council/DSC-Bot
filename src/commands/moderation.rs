@@ -3,14 +3,14 @@
  *   All rights reserved.
  */
 
-use rusqlite::{params, Connection, Result};
+use rusqlite::{params, Connection, Result, RowIndex};
 use serenity::framework::standard::{macros::command, Args, CommandResult, StandardFramework};
 use serenity::model::id::UserId;
 use serenity::{model::channel::Message, model::guild::Member, prelude::*};
 
 use crate::checks::*;
 
-use crate::util::data::{get_strike_database, get_global_pickle_database};
+use crate::util::{data::{get_strike_database, get_global_pickle_database}, moderation::*};
 
 struct Strike {
     user: UserId,
@@ -20,7 +20,8 @@ struct Strike {
 #[command]
 #[description = "Adds a strike to the mentioned user"]
 #[only_in(guilds)]
-#[min_args(1)]
+#[usage("<@User> <Reason>")]
+#[min_args(2)]
 #[checks(Moderator)]
 pub fn strike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let strike_conn = get_strike_database(&msg.guild_id.unwrap().as_u64());
@@ -36,6 +37,15 @@ pub fn strike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
         .unwrap();
 
     msg.channel_id.say(&ctx.http, "Struck the user.").unwrap();
+    let action = ModAction {
+        target: strike.user,
+        moderator: msg.author.clone(),
+        action_type: ModActionType::Strike,
+        reason: strike.reason,
+        details: None,
+        guild: msg.guild_id.unwrap(),
+    };
+    log_mod_action(action, ctx);
 
     Ok(())
 }

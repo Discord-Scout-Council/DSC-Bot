@@ -105,6 +105,15 @@ impl EventHandler for Handler {
 
                 m
             }).unwrap();
+            let action = moderation::ModAction {
+                target: msg.author.clone().id,
+                moderator: ctx.http.get_current_application_info().unwrap().id.to_user(&ctx).unwrap().clone(),
+                reason: Some(String::from("Found a banned word")),
+                details: None,
+                action_type: moderation::ModActionType::BadWordDelete,
+                guild: msg.guild_id.clone().unwrap()
+            };
+            moderation::log_mod_action(action, &mut ctx.clone());
             msg.delete(&ctx).unwrap();
         }
         let config = util::parse_config();
