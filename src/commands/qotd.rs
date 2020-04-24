@@ -85,7 +85,7 @@ pub fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     }
 
     questions.sort();
-    let highest_num = match questions.first() {
+    let highest_num = match questions.last() {
         Some(q) => q.num,
         None => 0,
     };
