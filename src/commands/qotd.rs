@@ -70,7 +70,7 @@ pub fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     message.push_str(&args.rest());
     message.push_str(&" to the question of the day");
     println!("Opening QOTDatabase");
-    let mut db = PickleDb::load_yaml("qotd.db", PickleDbDumpPolicy::AutoDump)?;
+    let mut db = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "qotd.db");
     println!("Getting all keys");
     let mut db_keys = db.get_all();
 
@@ -105,7 +105,13 @@ pub fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 pub fn run(ctx: &mut Context, msg: &Message) -> CommandResult {
     let db = get_pickle_database(msg.guild_id.unwrap().as_u64(), &String::from("qotd.db"));
     let mut guild_cache = get_pickle_database(msg.guild_id.unwrap().as_u64(), &"cache.db");
-    let current_num: i32 = guild_cache.get::<i32>("current_qotd").unwrap() + 1;
+    let current_num: i32 = match guild_cache.get::<i32>("current_qotd") {
+        Some(n) => n + 1,
+        None => {
+            guild_cache.set("current_qotd", &0)?;
+            0
+        },
+    };
     let next_question = Question {
         num: current_num + 1,
         text: db.get(&current_num.to_string()).unwrap(),
