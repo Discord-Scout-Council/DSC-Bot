@@ -84,13 +84,13 @@ impl EventHandler for Handler {
     //* Points
     fn message(&self, ctx: Context, msg: Message) {
         //* Banned Words
-        if util::moderation::contains_banned_word(&msg.content) {
-            msg.channel_id
-                .send_message(&ctx.http, |m| {
-                    m.embed(|e| {
-                        let mut mention = String::from("<@");
-                        mention.push_str(&msg.author.id.as_u64().to_string());
-                        mention.push_str(">");
+        let guild = &msg.guild_id.unwrap();
+        if util::moderation::contains_banned_word(&msg.content, &guild.as_u64()) {
+            msg.channel_id.send_message(&ctx.http, |m| {
+                m.embed(|e| {
+                    let mut mention = String::from("<@");
+                    mention.push_str(&msg.author.id.as_u64().to_string());
+                    mention.push_str(">");
 
                         e.title("Warning - Bad Language");
                         e.description("Do not use poor language or slurs in this server.");
