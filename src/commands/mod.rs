@@ -8,3 +8,4 @@ pub mod moderation;
 pub mod owner;
 pub mod points;
 pub mod qotd;
+pub mod settings;
