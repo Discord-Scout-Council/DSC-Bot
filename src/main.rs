@@ -84,7 +84,8 @@ impl EventHandler for Handler {
     //* Points
     fn message(&self, ctx: Context, msg: Message) {
         //* Banned Words
-        if util::moderation::contains_banned_word(&msg.content) {
+        let guild = &msg.guild_id.unwrap();
+        if util::moderation::contains_banned_word(&msg.content, &guild.as_u64()) {
             msg.channel_id.send_message(&ctx.http, |m| {
                 m.embed(|e| {
 
