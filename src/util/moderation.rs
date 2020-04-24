@@ -6,7 +6,6 @@
 use super::data::{get_global_pickle_database, get_pickle_database};
 use serenity::{model::{user::User,id::{GuildId}, prelude::*}};
 use serenity::client::Context;
-use serenity::model::{id::GuildId, prelude::*, user::User};
 
 pub enum ModActionType {
     Strike,
