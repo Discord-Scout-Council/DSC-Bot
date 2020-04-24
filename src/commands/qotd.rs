@@ -123,6 +123,8 @@ pub fn run(ctx: &mut Context, msg: &Message) -> CommandResult {
     let qotd_channel = guild.channel_id_from_name(&ctx, "qotd-questions").unwrap();
 
     qotd_channel.send_message(&ctx.http, |m| {
+        let mut mention: String = String::from("<@&703239010331656262>");
+        m.content(mention);
         m.embed(|e| {
             e.title("Question of the Day");
             e.description(&next_question.text);
