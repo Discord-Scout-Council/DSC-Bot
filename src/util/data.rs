@@ -4,7 +4,7 @@
  */
 
 use pickledb::{PickleDb, PickleDbDumpPolicy};
-use rusqlite::{Connection, params};
+use rusqlite::{params, Connection};
 use std::fs::create_dir_all;
 
 pub fn get_pickle_database(guild_id: &u64, db_name: &str) -> PickleDb {
@@ -16,7 +16,6 @@ pub fn get_pickle_database(guild_id: &u64, db_name: &str) -> PickleDb {
     };
 
     db
-
 }
 
 pub fn get_global_pickle_database(db_name: &str) -> PickleDb {
@@ -52,8 +51,7 @@ fn get_sqlite_database(guild_id: &u64, db_name: &str) -> Connection {
 
 pub fn get_strike_database(guild_id: &u64) -> Connection {
     let conn = get_sqlite_database(guild_id, &"strikes.db");
-    conn
-    .execute(
+    conn.execute(
         "CREATE TABLE IF NOT EXISTS strikes (
                                 id INTEGER PRIMARY KEY,
                                 userid TEXT NOT NULL,

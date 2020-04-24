@@ -10,7 +10,10 @@ use serenity::{model::channel::Message, model::guild::Member, prelude::*};
 
 use crate::checks::*;
 
-use crate::util::{data::{get_strike_database, get_global_pickle_database}, moderation::*};
+use crate::util::{
+    data::{get_global_pickle_database, get_strike_database},
+    moderation::*,
+};
 
 struct Strike {
     user: UserId,
@@ -107,7 +110,6 @@ pub fn strikelog(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
 #[description = "Manages the bad words filter"]
 #[sub_commands(add)]
 pub fn wordfilter(ctx: &mut Context, msg: &Message) -> CommandResult {
-
     Ok(())
 }
 
@@ -116,7 +118,6 @@ pub fn wordfilter(ctx: &mut Context, msg: &Message) -> CommandResult {
 #[checks(Moderator)]
 #[sub_commands(global)]
 pub fn add(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-
     msg.reply(&ctx, "Called word management")?;
 
     Ok(())
@@ -125,7 +126,7 @@ pub fn add(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 #[command]
 #[description = "Adds a word to the global list"]
 #[checks(Moderator)]
-pub fn global (ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub fn global(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut db = get_global_pickle_database("banned_words.db");
 
     db.set(args.rest(), &1)?;

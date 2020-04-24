@@ -3,19 +3,19 @@
  *   All rights reserved.
  */
 
+use crate::checks::*;
+use crate::util::data::get_pickle_database;
+use pickledb::{PickleDb, PickleDbDumpPolicy};
 use serenity::framework::standard::{macros::command, Args, CommandResult, StandardFramework};
 use serenity::model::id::UserId;
-use serenity::{model::channel::Message, model::guild::Member, prelude::*};
-use crate::checks::*;
-use pickledb::{PickleDb, PickleDbDumpPolicy};
-use std::cmp::Ordering;
-use crate::util::data::get_pickle_database;
 use serenity::utils::Colour;
+use serenity::{model::channel::Message, model::guild::Member, prelude::*};
+use std::cmp::Ordering;
 
 #[derive(Eq)]
 struct Question {
     num: i32,
-    text: String
+    text: String,
 }
 
 impl Ord for Question {
@@ -50,7 +50,7 @@ pub fn qotd(ctx: &mut Context, msg: &Message) -> CommandResult {
             e.fields(vec![
                 ("Add", "qotd add <Question>", false),
                 ("Run", "qotd run", false),
-                ("Suggest", "qotd suggest <Question>", false)
+                ("Suggest", "qotd suggest <Question>", false),
             ]);
 
             e
@@ -60,7 +60,6 @@ pub fn qotd(ctx: &mut Context, msg: &Message) -> CommandResult {
     })?;
 
     Ok(())
-
 }
 
 #[command]
@@ -79,7 +78,10 @@ pub fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 
     println!("Sorting questionsn");
     for q in db_keys.iter() {
-        questions.push(Question { num: q.parse::<i32>().unwrap(), text: db.get(q).unwrap()});
+        questions.push(Question {
+            num: q.parse::<i32>().unwrap(),
+            text: db.get(q).unwrap(),
+        });
     }
 
     questions.sort();
@@ -104,7 +106,10 @@ pub fn run(ctx: &mut Context, msg: &Message) -> CommandResult {
     let db = get_pickle_database(msg.guild_id.unwrap().as_u64(), &String::from("qotd.db"));
     let mut guild_cache = get_pickle_database(msg.guild_id.unwrap().as_u64(), &"cache.db");
     let current_num: i32 = guild_cache.get::<i32>("current_qotd").unwrap() + 1;
-    let next_question = Question {num: current_num + 1, text: db.get(&current_num.to_string()).unwrap()};
+    let next_question = Question {
+        num: current_num + 1,
+        text: db.get(&current_num.to_string()).unwrap(),
+    };
 
     println!("Finding qotd channel");
     let guild_arc = msg.guild(&ctx).unwrap();
@@ -140,20 +145,20 @@ pub fn run(ctx: &mut Context, msg: &Message) -> CommandResult {
 pub fn suggest(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut points_db = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "points.db");
     let mut guild_cache = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "cache.db");
-    let mut qotd_suggest_db = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "qotd-suggest.db");
+    let mut qotd_suggest_db =
+        get_pickle_database(&msg.guild_id.unwrap().as_u64(), "qotd-suggest.db");
 
     let user_points = match points_db.get(&msg.author.id.as_u64().to_string()) {
         Some(p) => p,
         None => 0,
     };
 
-
     let point_cost = match guild_cache.get("qotd_suggest_cost") {
         Some(c) => c,
         None => {
             guild_cache.set("qotd_suggest_cost", &10)?;
             10
-        },
+        }
     };
 
     if user_points < point_cost {
@@ -178,7 +183,9 @@ pub fn suggest(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
             println!("Finding qotd channel");
             let guild_arc = msg.guild(&ctx).unwrap();
             let guild = guild_arc.read();
-            let qotd_channel = guild.channel_id_from_name(&ctx, "qotd-suggestions").unwrap();
+            let qotd_channel = guild
+                .channel_id_from_name(&ctx, "qotd-suggestions")
+                .unwrap();
             qotd_channel.send_message(&ctx, |m| {
                 m.embed(|e| {
                     e.title("Question of the Day Suggestion");
@@ -218,7 +225,10 @@ fn get_highest_qotd(db: &PickleDb) -> i32 {
 
     println!("Sorting questionsn");
     for q in db_keys.iter() {
-        questions.push(Question { num: q.parse::<i32>().unwrap(), text: db.get(q).unwrap()});
+        questions.push(Question {
+            num: q.parse::<i32>().unwrap(),
+            text: db.get(q).unwrap(),
+        });
     }
 
     questions.sort();

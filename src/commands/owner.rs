@@ -3,10 +3,10 @@
  *   All rights reserved.
  */
 
+use crate::util::data::get_pickle_database;
+use pickledb::{PickleDb, PickleDbDumpPolicy};
 use serenity::framework::standard::{macros::command, CommandResult, StandardFramework};
 use serenity::{model::channel::Message, model::guild::Member, prelude::*};
-use pickledb::{PickleDb, PickleDbDumpPolicy};
-use crate::util::data::get_pickle_database;
 
 #[command]
 #[description = "Restarts the bot"]

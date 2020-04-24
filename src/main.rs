@@ -12,12 +12,12 @@ use serenity::{
     },
     model::{
         channel::{Message, Reaction, ReactionType},
-        gateway::{Ready, Activity, ActivityType},
+        gateway::{Activity, ActivityType, Ready},
         id::UserId,
-        user::OnlineStatus
+        user::OnlineStatus,
     },
     prelude::*,
-    utils::Colour
+    utils::Colour,
 };
 use std::collections::HashSet;
 
@@ -85,39 +85,48 @@ impl EventHandler for Handler {
     fn message(&self, ctx: Context, msg: Message) {
         //* Banned Words
         if util::moderation::contains_banned_word(&msg.content) {
-            msg.channel_id.send_message(&ctx.http, |m| {
-                m.embed(|e| {
+            msg.channel_id
+                .send_message(&ctx.http, |m| {
+                    m.embed(|e| {
+                        let mut mention = String::from("<@");
+                        mention.push_str(&msg.author.id.as_u64().to_string());
+                        mention.push_str(">");
 
-                    let mut mention = String::from("<@");
-                    mention.push_str(&msg.author.id.as_u64().to_string());
-                    mention.push_str(">");
+                        e.title("Warning - Bad Language");
+                        e.description("Do not use poor language or slurs in this server.");
+                        e.fields(vec![("User:", mention, false)]);
 
-                    e.title("Warning - Bad Language");
-                    e.description("Do not use poor language or slurs in this server.");
-                    e.fields(vec![
-                        ("User:", mention, false)
-                    ]);
+                        e.color(Colour::RED);
 
-                    e.color(Colour::RED);
+                        e
+                    });
 
-                    e
-                });
-
-                m
-            }).unwrap();
+                    m
+                })
+                .unwrap();
             let action = moderation::ModAction {
                 target: msg.author.clone().id,
-                moderator: ctx.http.get_current_application_info().unwrap().id.to_user(&ctx).unwrap().clone(),
+                moderator: ctx
+                    .http
+                    .get_current_application_info()
+                    .unwrap()
+                    .id
+                    .to_user(&ctx)
+                    .unwrap()
+                    .clone(),
                 reason: Some(String::from("Found a banned word")),
                 details: None,
                 action_type: moderation::ModActionType::BadWordDelete,
-                guild: msg.guild_id.clone().unwrap()
+                guild: msg.guild_id.clone().unwrap(),
             };
             moderation::log_mod_action(action, &mut ctx.clone());
             msg.delete(&ctx).unwrap();
         }
         let config = util::parse_config();
-        let mut db = util::data::get_pickle_database(msg.guild_id.unwrap().as_u64(), &String::from("points.db"));
+        let mut db = util::data::get_pickle_database(
+            msg.guild_id.unwrap().as_u64(),
+            &String::from("points.db"),
+        );
         /*if let None = db.get::<u64>(&msg.author.id.to_string()) {
             println!("Did not find user {}", msg.author.id);
             db.set(&msg.author.id.to_string(), &0).unwrap();
@@ -159,7 +168,6 @@ fn help(
 }
 
 fn main() {
-
     let strikes_conn = Connection::open("strikes.db").unwrap();
     strikes_conn
         .execute(
