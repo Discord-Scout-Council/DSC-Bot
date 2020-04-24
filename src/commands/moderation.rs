@@ -7,10 +7,11 @@ use rusqlite::{params, Connection, Result, RowIndex};
 use serenity::framework::standard::{macros::command, Args, CommandResult, StandardFramework};
 use serenity::model::id::UserId;
 use serenity::{model::channel::Message, model::guild::Member, prelude::*};
+use serenity::utils::Colour;
 
 use crate::checks::*;
 
-use crate::util::{data::{get_strike_database, get_global_pickle_database}, moderation::*};
+use crate::util::{data::{get_strike_database, get_global_pickle_database, get_pickle_database}, moderation::*};
 
 struct Strike {
     user: UserId,
@@ -118,13 +119,48 @@ pub fn wordfilter(ctx: &mut Context, msg: &Message) -> CommandResult {
 pub fn add(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
     msg.reply(&ctx, "Called word management")?;
+    let guild = &msg.guild_id.unwrap();
+    let mut db = get_pickle_database(guild.as_u64(), "banned_words.db");
+    match db.get::<i32>(&args.rest()) {
+        Some(i) => {
+            msg.channel_id.send_message(&ctx, |m| {
+                m.embed(|e| {
+                    e.title("Word Filter");
+                    e.description("That word is already filtered!");
+                    e.colour(Colour::RED);
+
+                    e
+                });
+
+                m
+            })?;
+        },
+        None => {
+            db.set(&args.rest(), &1)?;
+            msg.channel_id.send_message(&ctx, |m| {
+                m.embed(|e| {
+                    e.title("Word Filter");
+
+                    let mut description = String::from("Added ");
+                    description.push_str(&args.rest());
+                    description.push_str(" to the server word filter");
+                    e.description(description);
+                    e.colour(Colour::DARK_GREEN);
+
+                    e
+                });
+
+                m
+            })?;
+        }
+    }
 
     Ok(())
 }
 
 #[command]
 #[description = "Adds a word to the global list"]
-#[checks(Moderator)]
+#[owners_only]
 pub fn global (ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut db = get_global_pickle_database("banned_words.db");
 
