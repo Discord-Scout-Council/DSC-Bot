@@ -31,7 +31,7 @@ use crate::commands::{general::*, moderation::*, owner::*, points::*, qotd::*};
 use util::*;
 
 #[group]
-#[commands(ping, about, serverinfo)]
+#[commands(ping, about, serverinfo, botsuggest)]
 struct General;
 
 #[group]
