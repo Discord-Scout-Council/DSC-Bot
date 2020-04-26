@@ -122,9 +122,10 @@ pub fn run(ctx: &mut Context, msg: &Message) -> CommandResult {
     let guild_arc = msg.guild(&ctx).unwrap();
     let guild = guild_arc.read();
     let qotd_channel: ChannelId = settings.get::<u64>("qotd_channel").unwrap().into();
+    let role_id = settings.get::<u64>("qotd_role").unwrap();
 
     qotd_channel.send_message(&ctx.http, |m| {
-        let mut mention: String = String::from("<@&703239010331656262>");
+        let mut mention: String = String::from(format!("<@&{}>", role_id.to_string()));
         m.content(mention);
         m.embed(|e| {
             e.title("Question of the Day");
