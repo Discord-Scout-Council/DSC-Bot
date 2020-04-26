@@ -3,8 +3,9 @@
  *   All rights reserved.
  */
 
-use serenity::framework::standard::{macros::command, CommandResult, StandardFramework};
+use serenity::framework::standard::{macros::command, CommandResult, Args};
 use serenity::{model::channel::Message, model::guild::Member, prelude::*};
+use serenity::utils::Colour;
 
 #[command]
 #[description = "Pings the bot"]
@@ -27,7 +28,7 @@ pub fn about(ctx: &mut Context, msg: &Message) -> CommandResult {
             e.field("Logo", "<@678816040146436117>", true);
             e.field("Git", "[git.sr.ht](https://git.sr.ht/~muirrum/campmasteronstantine)", false);
             e.field("Issues", "[todo.sr.ht](https://todo.sr.ht/~muirrum/Campmaster-Constantine)", true);
-            e.field("Report an Issue or Suggestion", "u.muirrum.Campmaster-Constantine@todo.sr.ht", true);
+            e.field("Report an Issue or Suggestion", "cbotsuggest <Suggestion>", true);
 
             e.thumbnail("https://cdn.discordapp.com/attachments/697917247368462336/702621900022480986/image0.png");
 
@@ -35,7 +36,7 @@ pub fn about(ctx: &mut Context, msg: &Message) -> CommandResult {
         });
 
         m
-    });
+    })?;
 
     Ok(())
 }
@@ -79,6 +80,42 @@ pub fn serverinfo(ctx: &mut Context, msg: &Message) -> CommandResult {
 
         m
     });
+
+    Ok(())
+}
+
+
+#[command]
+#[description = "Sends a suggestion to the bot developers"]
+#[usage("<Suggestion>")]
+#[min_args(1)]
+pub fn botsuggest(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    let suggest_channel = ctx.cache.read().guild_channel(662067035999698987).unwrap();
+    let suggestion = args.rest();
+    suggest_channel.read().send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Campmaster Suggestion");
+            e.description(suggestion);
+            e.field("Suggester", &msg.author.name, true);
+            e.field("Guild", &msg.guild(&ctx).unwrap().read().name, true);
+
+            e
+        });
+
+        m
+    })?;
+
+    msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Campmaster Suggestion");
+            e.description("Successfully sent your suggestion!");
+            e.colour(Colour::DARK_GREEN);
+
+            e
+        });
+
+        m
+    })?;
 
     Ok(())
 }

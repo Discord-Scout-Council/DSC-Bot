@@ -76,7 +76,7 @@ pub fn points(ctx: &mut Context, msg: &Message) -> CommandResult {
 #[description = "Displays the top ten users on the leaderboard"]
 #[only_in(guilds)]
 pub fn leaderboard(ctx: &mut Context, msg: &Message) -> CommandResult {
-    let db = PickleDb::load_read_only("points.db", SerializationMethod::Yaml).unwrap();
+    let db = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "points.db");
     let mut db_keys = db.get_all();
 
     let mut points: Vec<UserPoints> = Vec::new();
