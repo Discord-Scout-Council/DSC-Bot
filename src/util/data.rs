@@ -62,3 +62,13 @@ pub fn get_strike_database(guild_id: &u64) -> Connection {
 
     conn
 }
+
+pub fn init_guild_cache(db: &mut PickleDb) {
+    //* Question of the Day
+    db.set("qotd_role", &0u64);
+    db.set("qotd_channel", &0u64);
+    db.set("current_qotd", &0u64);
+    db.set("qotd_suggest_channel", &0u64);
+    
+    db.set("modlogs_channel", &0u64);
+}

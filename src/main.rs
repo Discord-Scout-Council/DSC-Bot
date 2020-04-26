@@ -15,6 +15,7 @@ use serenity::{
         gateway::{Activity, ActivityType, Ready},
         id::UserId,
         user::OnlineStatus,
+        guild::Guild,
     },
     prelude::*,
     utils::Colour,
@@ -31,7 +32,7 @@ use crate::commands::{general::*, moderation::*, owner::*, points::*, qotd::*, s
 use util::*;
 
 #[group]
-#[commands(ping, about, serverinfo, botsuggest)]
+#[commands(ping, about, serverinfo)]
 struct General;
 
 #[group]
@@ -156,6 +157,10 @@ impl EventHandler for Handler {
                     .expect("Could not add points");
             }
         }
+    }
+
+    fn guild_create(&self, ctx: Context, guild: Guild, _is_new: bool) {
+        let mut cache = data::get_pickle_database(&guild.id.as_u64(), "cache.db");
     }
 }
 
