@@ -19,7 +19,25 @@
  #[sub_commands(get,set)]
  pub fn serversettings(ctx: &mut Context, msg: &Message) -> CommandResult {
 
-    msg.reply(&ctx, "Help is a work in progress, like this command. Ping Muirrum for help!")?;
+    msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Server Settings Help");
+            e.description("Changes and views server settings for the current server\n\nUse a value from the table below to change or view a setting");
+            e.fields(vec![
+                ("Usage", "serversettings set/get <setting> (value)", false),
+                ("QOTD Channel", "qotd_channel", true),
+                ("QOTD Role", "qotd_role", true),
+                ("QOTD Suggestions Channel", "qotd_suggest_channel", true),
+                ("Modlogs Channel", "modlogs_channel", true)
+            ]);
+            e.footer(|f| {
+                f.text(format!("Requested by {}", &msg.author.name));
+                f
+            });
+            e
+        });
+        m
+    })?;
 
     Ok(())
 }
