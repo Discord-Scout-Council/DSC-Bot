@@ -4,18 +4,19 @@
  */
 
  use crate::checks::*;
- use crate::util::data::get_pickle_database;
+ use crate::util::data::{get_pickle_database, init_guild_settings};
  use pickledb::{PickleDb, PickleDbDumpPolicy};
  use serenity::framework::standard::{macros::command, Args, CommandResult, StandardFramework};
- use serenity::model::id::UserId;
+ use serenity::model::id::{ChannelId, RoleId};
  use serenity::utils::Colour;
  use serenity::{model::channel::Message, model::guild::Member, prelude::*};
  use std::cmp::Ordering;
 
+
  #[command]
  #[description = "Manage server settings"]
  #[checks(Moderator)]
- #[sub_commands(get)]
+ #[sub_commands(get,set)]
  pub fn serversettings(ctx: &mut Context, msg: &Message) -> CommandResult {
 
     msg.reply(&ctx, "Help is a work in progress, like this command. Ping Muirrum for help!")?;
@@ -28,7 +29,7 @@
 #[checks(Moderator)]
 #[num_args(1)]
 pub fn get(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let db = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "cache.db");
+    let db = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "settings.db");
 
     match db.get::<String>(&args.rest()) {
         Some(s) => {
@@ -65,6 +66,71 @@ pub fn get(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
     Ok(())
 }
+
+#[command]
+#[description = "Sets a setting"]
+#[usage("<Setting> <Value>")]
+#[min_args(2)]
+pub fn set(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    let mut settings = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "settings.db");
+    let setting_name = args.current().unwrap();
+    let mut arg_value = args.clone();
+    let setting_value = if setting_name.to_lowercase().contains("role") {
+        args.rest().parse::<RoleId>().unwrap().as_u64().clone()
+    } else if setting_name.to_lowercase().contains("channel") {
+        let channel = &arg_value.advance().rest().parse::<ChannelId>().unwrap();
+        channel.as_u64().clone()
+    } else {
+        0u64
+    };
+
+    if setting_value == 0 {
+        msg.channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Server Settings");
+                e.description(format!("Invalid setting value."));
+
+                e
+            });
+
+            m
+        })?;
+    }
+
+    if let None = settings.get::<u64>(&setting_name) {
+        msg.channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Server Settings");
+                e.description(format!("Setting {} does not exist. Refer to command help", setting_name));
+                e.colour(Colour::RED);
+                e
+            });
+            m
+        })?;
+    } else {
+        let old_value = settings.get::<u64>(&setting_name).unwrap();
+        settings.set(setting_name, &setting_value)?;
+        msg.channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Server Settings");
+                e.description("Successfully changed setting");
+                e.field("Setting", setting_name, true);
+                e.field("New Value", setting_value, true);
+                e.field("Old Value", old_value, false);
+                e.colour(Colour::DARK_GREEN);
+                e.footer(|f| {
+                    f.text(format!("Requested by {}", &msg.author.name));
+                    f
+                });
+                e
+            });
+            m
+        })?;
+    }
+
+    Ok(())
+}
+
 #[command]
 #[description = "Resets server settings"]
 #[checks(Moderator)]
