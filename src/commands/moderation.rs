@@ -187,3 +187,31 @@ pub fn global (ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
 
     Ok(())
 }
+
+#[command]
+#[description = "Clears *all* of a users strikes."]
+#[usage("<User>")]
+#[checks(Moderator)]
+pub fn clearstrikes(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    let strikes = get_strike_database(&msg.guild_id.unwrap().as_u64());
+    let target = args.parse::<UserId>().unwrap();
+    strikes.execute("DELETE FROM strikes WHERE userid = (?1)", params![target.as_u64().to_string()])?;
+
+    msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Moderation Subsystem");
+            e.description(format!("Cleared strikes for {}", target.to_user(&ctx).unwrap().name));
+            e.footer(|f| {
+                f.text(format!("Requested by {}", &msg.author.name));
+
+                f
+            });
+            e.colour(Colour::DARK_GREEN);
+            e
+        });
+
+        m
+    })?;
+
+    Ok(())
+}
