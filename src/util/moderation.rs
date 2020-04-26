@@ -10,6 +10,7 @@ use serenity::client::Context;
 pub enum ModActionType {
     Strike,
     BadWordDelete,
+    ClearStrikes
 }
 
 pub struct ModAction {
@@ -76,6 +77,9 @@ pub fn log_mod_action(action: ModAction, ctx: &mut Context) {
                     }
                     ModActionType::BadWordDelete => {
                         e.field("Type", "Word Filter", false);
+                    },
+                    ModActionType::ClearStrikes => {
+                        e.field("Type", "Strikelog Clear", false);
                     }
                 };
 
