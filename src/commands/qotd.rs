@@ -156,6 +156,7 @@ pub fn suggest(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
     let mut guild_cache = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "cache.db");
     let mut qotd_suggest_db =
         get_pickle_database(&msg.guild_id.unwrap().as_u64(), "qotd-suggest.db");
+        let settings_db = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "settings.db");
 
     let user_points = match points_db.get(&msg.author.id.as_u64().to_string()) {
         Some(p) => p,
@@ -190,11 +191,7 @@ pub fn suggest(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
                 m
             })?;
             println!("Finding qotd channel");
-            let guild_arc = msg.guild(&ctx).unwrap();
-            let guild = guild_arc.read();
-            let qotd_channel = guild
-                .channel_id_from_name(&ctx, "qotd-suggestions")
-                .unwrap();
+            let qotd_channel: ChannelId = settings_db.get::<u64>("qotd_suggest_channel").unwrap().into();
             qotd_channel.send_message(&ctx, |m| {
                 m.embed(|e| {
                     e.title("Question of the Day Suggestion");
