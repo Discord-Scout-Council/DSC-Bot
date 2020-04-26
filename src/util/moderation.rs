@@ -47,12 +47,10 @@ pub fn contains_banned_word(content: &String, guild_id: &u64) -> bool{
 
 pub fn log_mod_action(action: ModAction, ctx: &mut Context) {
     let guild_id = &action.guild;
-    let guild_arc = guild_id.to_guild_cached(&ctx).unwrap();
-    let guild = guild_arc.read();
-    let mod_log_channel = guild.channel_id_from_name(&ctx, "mod-logs");
+    let settings = get_pickle_database(guild_id.as_u64(), "settings.db");
+    let mod_log_channel: ChannelId = settings.get::<u64>("modlogs_channel").unwrap().into();
 
     mod_log_channel
-        .unwrap()
         .send_message(&ctx, |m| {
             m.embed(|e| {
                 e.title("Moderation Log Entry");
