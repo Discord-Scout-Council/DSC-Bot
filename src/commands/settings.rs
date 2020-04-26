@@ -76,7 +76,7 @@ pub fn set(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let setting_name = args.current().unwrap();
     let mut arg_value = args.clone();
     let setting_value = if setting_name.to_lowercase().contains("role") {
-        args.rest().parse::<RoleId>().unwrap().as_u64().clone()
+        arg_value.advance().rest().parse::<RoleId>().unwrap().as_u64().clone()
     } else if setting_name.to_lowercase().contains("channel") {
         let channel = &arg_value.advance().rest().parse::<ChannelId>().unwrap();
         channel.as_u64().clone()
