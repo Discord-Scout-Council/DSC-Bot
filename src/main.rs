@@ -52,7 +52,7 @@ struct Moderation;
 struct Qotd;
 
 #[group]
-#[commands(serversettings)]
+#[commands(serversettings, resetsettings)]
 struct Settings;
 
 struct Handler;

@@ -65,3 +65,27 @@ pub fn get(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
     Ok(())
 }
+#[command]
+#[description = "Resets server settings"]
+#[checks(Moderator)]
+pub fn resetsettings(ctx: &mut Context, msg: &Message) -> CommandResult {
+    let mut db = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "settings.db");
+
+    init_guild_settings(&mut db);
+
+    msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Server Settings");
+            e.description(format!("Successfully reset server settings"));
+            e.footer(|f| {
+                f.text(format!("Requested by {}", &msg.author.name));
+
+                f
+            });
+            e
+        });
+        m
+    })?;
+
+    Ok(())
+}
