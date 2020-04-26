@@ -28,7 +28,7 @@ pub fn about(ctx: &mut Context, msg: &Message) -> CommandResult {
             e.field("Logo", "<@678816040146436117>", true);
             e.field("Git", "[git.sr.ht](https://git.sr.ht/~muirrum/campmasteronstantine)", false);
             e.field("Issues", "[todo.sr.ht](https://todo.sr.ht/~muirrum/Campmaster-Constantine)", true);
-            e.field("Report an Issue or Suggestion", "u.muirrum.Campmaster-Constantine@todo.sr.ht", true);
+            e.field("Report an Issue or Suggestion", "cbotsuggest <Suggestion>", true);
 
             e.thumbnail("https://cdn.discordapp.com/attachments/697917247368462336/702621900022480986/image0.png");
 
@@ -36,7 +36,7 @@ pub fn about(ctx: &mut Context, msg: &Message) -> CommandResult {
         });
 
         m
-    });
+    })?;
 
     Ok(())
 }
