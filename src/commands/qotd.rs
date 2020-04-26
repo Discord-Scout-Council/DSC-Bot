@@ -7,7 +7,7 @@ use crate::checks::*;
 use crate::util::data::get_pickle_database;
 use pickledb::{PickleDb, PickleDbDumpPolicy};
 use serenity::framework::standard::{macros::command, Args, CommandResult, StandardFramework};
-use serenity::model::id::UserId;
+use serenity::model::id::ChannelId;
 use serenity::utils::Colour;
 use serenity::{model::channel::Message, model::guild::Member, prelude::*};
 use std::cmp::Ordering;
@@ -105,6 +105,7 @@ pub fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 pub fn run(ctx: &mut Context, msg: &Message) -> CommandResult {
     let db = get_pickle_database(msg.guild_id.unwrap().as_u64(), &String::from("qotd.db"));
     let mut guild_cache = get_pickle_database(msg.guild_id.unwrap().as_u64(), &"cache.db");
+    let settings = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "settings.db");
     let current_num: i32 = match guild_cache.get::<i32>("current_qotd") {
         Some(n) => n + 1,
         None => {
@@ -120,7 +121,7 @@ pub fn run(ctx: &mut Context, msg: &Message) -> CommandResult {
     println!("Finding qotd channel");
     let guild_arc = msg.guild(&ctx).unwrap();
     let guild = guild_arc.read();
-    let qotd_channel = guild.channel_id_from_name(&ctx, "qotd-questions").unwrap();
+    let qotd_channel: ChannelId = settings.get::<u64>("qotd_channel").unwrap().into();
 
     qotd_channel.send_message(&ctx.http, |m| {
         let mut mention: String = String::from("<@&703239010331656262>");
