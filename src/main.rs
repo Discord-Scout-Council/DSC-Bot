@@ -162,7 +162,9 @@ impl EventHandler for Handler {
 
     fn guild_create(&self, ctx: Context, guild: Guild, _is_new: bool) {
         let mut cache = data::get_pickle_database(&guild.id.as_u64(), "settings.db");
-        data::init_guild_settings(&mut cache);
+        if let None = cache.get::<String>("qotd_channel") {
+            data::init_guild_settings(&mut cache);
+        }
     }
 }
 
