@@ -7,7 +7,7 @@ use rusqlite::{params, Connection, Result, RowIndex};
 use serenity::framework::standard::{macros::command, Args, CommandResult, StandardFramework};
 use serenity::model::id::UserId;
 use serenity::utils::Colour;
-use serenity::{model::channel::Message, model::guild::Member, prelude::*};
+use serenity::{model::channel::Message, model::user::User, prelude::*};
 
 use crate::checks::*;
 
@@ -313,6 +313,47 @@ pub fn modstrike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
             m
         })?;
     }
+
+    Ok(())
+}
+
+#[command]
+#[usage("<Case Number>")]
+#[num_args(1)]
+#[checks(Moderator)]
+#[only_in(guilds)]
+pub fn getcase(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    let strikes = get_strike_database(&msg.guild_id.unwrap().as_u64());
+    let mut stmt = strikes.prepare("SELECT userid,moderator,reason,is_withdrawn FROM strikes WHERE id = ?")?;
+    let mut rows = stmt.query(params![args.current()])?;
+    let row = rows.next().unwrap().unwrap();
+    let user_id: UserId = row.get::<usize, String>(0).unwrap().parse::<u64>().unwrap().into();
+    let user: User = user_id.to_user(&ctx)?;
+    let moderator_id: UserId = row.get::<usize, String>(1).unwrap().parse::<u64>().unwrap().into();
+    let moderator = moderator_id.to_user(&ctx)?;
+    let reason = row.get::<usize, String>(2).unwrap();
+    let is_withdrawn = match row.get::<usize, String>(3).unwrap().parse::<i32>().unwrap() {
+        1 => true,
+        _ => false,
+    };
+
+    msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Moderation Case");
+            e.description(reason);
+            e.fields(vec![
+                ("User", &user.name, true),
+                ("Moderator", &moderator.name, true),
+                ("Is Withdrawn?", &is_withdrawn.to_string(), true)
+            ]);
+            e.footer(|f| {
+                f.text(format!("Requested by {}", &msg.author.name));
+                f
+            });
+            e
+        });
+        m
+    })?;
 
     Ok(())
 }
