@@ -263,7 +263,7 @@ pub fn modstrike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
     let strikes = get_strike_database(&msg.guild_id.unwrap().as_u64());
     let case_id = &args.single::<u32>()?;
     let modify_thing = &args.single::<String>().unwrap().to_lowercase();
-    let new_value = args.single::<String>().unwrap();
+    let new_value = args.rest();
 
     if modify_thing == "reason" {
         strikes.execute("UPDATE strikes SET reason = ?1 WHERE id = ?2", params![new_value, case_id])?;
