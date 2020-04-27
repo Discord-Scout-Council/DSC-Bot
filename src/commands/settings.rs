@@ -3,22 +3,20 @@
  *   All rights reserved.
  */
 
- use crate::checks::*;
- use crate::util::data::{get_pickle_database, init_guild_settings};
- use pickledb::{PickleDb, PickleDbDumpPolicy};
- use serenity::framework::standard::{macros::command, Args, CommandResult, StandardFramework};
- use serenity::model::id::{ChannelId, RoleId};
- use serenity::utils::Colour;
- use serenity::{model::channel::Message, model::guild::Member, prelude::*};
- use std::cmp::Ordering;
+use crate::checks::*;
+use crate::util::data::{get_pickle_database, init_guild_settings};
+use pickledb::{PickleDb, PickleDbDumpPolicy};
+use serenity::framework::standard::{macros::command, Args, CommandResult, StandardFramework};
+use serenity::model::id::{ChannelId, RoleId};
+use serenity::utils::Colour;
+use serenity::{model::channel::Message, model::guild::Member, prelude::*};
+use std::cmp::Ordering;
 
-
- #[command]
- #[description = "Manage server settings"]
- #[checks(Moderator)]
- #[sub_commands(get,set)]
- pub fn serversettings(ctx: &mut Context, msg: &Message) -> CommandResult {
-
+#[command]
+#[description = "Manage server settings"]
+#[checks(Moderator)]
+#[sub_commands(get, set)]
+pub fn serversettings(ctx: &mut Context, msg: &Message) -> CommandResult {
     msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
             e.title("Server Settings Help");
@@ -63,7 +61,7 @@ pub fn get(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
                 m
             })?;
-        },
+        }
         None => {
             msg.channel_id.send_message(&ctx, |m| {
                 m.embed(|e| {
@@ -94,7 +92,13 @@ pub fn set(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let setting_name = args.current().unwrap();
     let mut arg_value = args.clone();
     let setting_value = if setting_name.to_lowercase().contains("role") {
-        arg_value.advance().rest().parse::<RoleId>().unwrap().as_u64().clone()
+        arg_value
+            .advance()
+            .rest()
+            .parse::<RoleId>()
+            .unwrap()
+            .as_u64()
+            .clone()
     } else if setting_name.to_lowercase().contains("channel") {
         let channel = &arg_value.advance().rest().parse::<ChannelId>().unwrap();
         channel.as_u64().clone()
@@ -119,7 +123,10 @@ pub fn set(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
         msg.channel_id.send_message(&ctx, |m| {
             m.embed(|e| {
                 e.title("Server Settings");
-                e.description(format!("Setting {} does not exist. Refer to command help", setting_name));
+                e.description(format!(
+                    "Setting {} does not exist. Refer to command help",
+                    setting_name
+                ));
                 e.colour(Colour::RED);
                 e
             });

@@ -6,16 +6,27 @@
 use rusqlite::{params, Connection, Result, RowIndex};
 use serenity::framework::standard::{macros::command, Args, CommandResult, StandardFramework};
 use serenity::model::id::UserId;
-use serenity::{model::channel::Message, model::guild::Member, prelude::*};
 use serenity::utils::Colour;
+use serenity::{model::channel::Message, model::guild::Member, prelude::*};
 
 use crate::checks::*;
 
-use crate::util::{data::{get_strike_database, get_global_pickle_database, get_pickle_database}, moderation::*};
+use crate::util::{
+    data::{get_global_pickle_database, get_pickle_database, get_strike_database},
+    moderation::*,
+};
 
 struct Strike {
     user: UserId,
     reason: Option<String>,
+    moderator: UserId
+}
+
+struct StrikeLog {
+    user: UserId,
+    reason: String,
+    moderator: UserId,
+    case_id: String
 }
 
 #[command]
@@ -29,11 +40,12 @@ pub fn strike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
     let strike = Strike {
         user: args.parse::<UserId>().unwrap(),
         reason: Some(String::from(args.advance().rest())),
+        moderator: msg.author.clone().into(),
     };
     strike_conn
         .execute(
-            "INSERT INTO strikes (userid, reason) VALUES (?1, ?2)",
-            params![strike.user.as_u64().to_string(), strike.reason],
+            "INSERT INTO strikes (userid, reason, moderator) VALUES (?1, ?2, ?3)",
+            params![strike.user.as_u64().to_string(), strike.reason, strike.moderator.as_u64().to_string()],
         )
         .unwrap();
 
@@ -61,21 +73,30 @@ pub fn strikelog(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
     let target_user = args.parse::<UserId>().unwrap();
 
     let mut stmt = strike_conn
-        .prepare("SELECT reason FROM strikes WHERE userid = (?)")
+        .prepare("SELECT reason,moderator,id FROM strikes WHERE userid = (?)")
         .unwrap();
     let mut rows = stmt
         .query(params![target_user.as_u64().to_string()])
         .unwrap();
 
-    let mut reasons: Vec<String> = Vec::new();
+    let mut strikes: Vec<StrikeLog> = Vec::new();
     while let Some(row) = rows.next().unwrap() {
-        reasons.push(row.get(0)?);
+        let reason = row.get::<usize, String>(0);
+        let moderator = row.get::<usize, String>(1);
+        let case_id = row.get::<usize, u32>(2);
+        let strike = StrikeLog {
+            user: target_user,
+            moderator: moderator.unwrap().parse::<u64>().unwrap().into(),
+            reason: reason.unwrap(),
+            case_id: case_id.unwrap().to_string()
+        };
+        strikes.push(strike);
     }
 
-    let mut result_vec: Vec<(usize, String, bool)> = Vec::new();
+    let mut result_vec: Vec<(String, String, bool)> = Vec::new();
 
-    for (i, r) in reasons.iter().enumerate() {
-        result_vec.push((i + 1, r.clone(), false));
+    for (i, r) in strikes.iter().enumerate() {
+        result_vec.push((format!("Case #{}",r.case_id), r.reason.clone(), false));
     }
 
     msg.channel_id
@@ -132,7 +153,7 @@ pub fn add(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
                 m
             })?;
-        },
+        }
         None => {
             db.set(&args.rest(), &1)?;
             msg.channel_id.send_message(&ctx, |m| {
@@ -159,7 +180,7 @@ pub fn add(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 #[command]
 #[description = "Adds a word to the global list"]
 #[owners_only]
-pub fn global (ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub fn global(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut db = get_global_pickle_database("banned_words.db");
 
     db.set(args.rest(), &1)?;
@@ -195,21 +216,27 @@ pub fn global (ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
 pub fn clearstrikes(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let strikes = get_strike_database(&msg.guild_id.unwrap().as_u64());
     let target = args.parse::<UserId>().unwrap();
-    strikes.execute("DELETE FROM strikes WHERE userid = (?1)", params![target.as_u64().to_string()])?;
+    strikes.execute(
+        "DELETE FROM strikes WHERE userid = (?1)",
+        params![target.as_u64().to_string()],
+    )?;
     let action = ModAction {
         target,
         moderator: msg.author.clone(),
         action_type: ModActionType::ClearStrikes,
         reason: None,
         details: None,
-        guild: msg.guild_id.unwrap()
+        guild: msg.guild_id.unwrap(),
     };
     log_mod_action(action, ctx);
 
     msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
             e.title("Moderation Subsystem");
-            e.description(format!("Cleared strikes for {}", target.to_user(&ctx).unwrap().name));
+            e.description(format!(
+                "Cleared strikes for {}",
+                target.to_user(&ctx).unwrap().name
+            ));
             e.footer(|f| {
                 f.text(format!("Requested by {}", &msg.author.name));
 

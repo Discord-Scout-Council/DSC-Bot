@@ -13,9 +13,9 @@ use serenity::{
     model::{
         channel::{Message, Reaction, ReactionType},
         gateway::{Activity, ActivityType, Ready},
+        guild::Guild,
         id::UserId,
         user::OnlineStatus,
-        guild::Guild,
     },
     prelude::*,
     utils::Colour,
@@ -91,11 +91,12 @@ impl EventHandler for Handler {
         //* Banned Words
         let guild = &msg.guild_id.unwrap();
         if util::moderation::contains_banned_word(&msg.content, &guild.as_u64()) {
-            msg.channel_id.send_message(&ctx.http, |m| {
-                m.embed(|e| {
-                    let mut mention = String::from("<@");
-                    mention.push_str(&msg.author.id.as_u64().to_string());
-                    mention.push_str(">");
+            msg.channel_id
+                .send_message(&ctx.http, |m| {
+                    m.embed(|e| {
+                        let mut mention = String::from("<@");
+                        mention.push_str(&msg.author.id.as_u64().to_string());
+                        mention.push_str(">");
 
                         e.title("Warning - Bad Language");
                         e.description("Do not use poor language or slurs in this server.");
@@ -178,17 +179,6 @@ fn help(
 }
 
 fn main() {
-    let strikes_conn = Connection::open("strikes.db").unwrap();
-    strikes_conn
-        .execute(
-            "CREATE TABLE IF NOT EXISTS strikes (
-                                    id INTEGER PRIMARY KEY,
-                                    userid TEXT NOT NULL,
-                                    reason TEXT)",
-            params![],
-        )
-        .unwrap();
-
     let config: util::BotConfig = util::parse_config();
 
     let token = config.token.clone();

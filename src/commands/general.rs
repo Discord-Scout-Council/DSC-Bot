@@ -3,9 +3,9 @@
  *   All rights reserved.
  */
 
-use serenity::framework::standard::{macros::command, CommandResult, Args};
-use serenity::{model::channel::Message, model::guild::Member, prelude::*};
+use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::utils::Colour;
+use serenity::{model::channel::Message, model::guild::Member, prelude::*};
 
 #[command]
 #[description = "Pings the bot"]
@@ -83,7 +83,6 @@ pub fn serverinfo(ctx: &mut Context, msg: &Message) -> CommandResult {
 
     Ok(())
 }
-
 
 #[command]
 #[description = "Sends a suggestion to the bot developers"]

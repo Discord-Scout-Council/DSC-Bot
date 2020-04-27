@@ -4,13 +4,13 @@
  */
 
 use super::data::{get_global_pickle_database, get_pickle_database};
-use serenity::{model::{user::User,id::{GuildId}, prelude::*}};
 use serenity::client::Context;
+use serenity::model::{id::GuildId, prelude::*, user::User};
 
 pub enum ModActionType {
     Strike,
     BadWordDelete,
-    ClearStrikes
+    ClearStrikes,
 }
 
 pub struct ModAction {
@@ -24,7 +24,7 @@ pub struct ModAction {
 
 impl ModAction {}
 
-pub fn contains_banned_word(content: &String, guild_id: &u64) -> bool{
+pub fn contains_banned_word(content: &String, guild_id: &u64) -> bool {
     let mut global_db = get_global_pickle_database("banned_words.db");
     let local_db = get_pickle_database(guild_id, "banned_words.db");
     let mut banned_words = global_db.get_all();
@@ -75,7 +75,7 @@ pub fn log_mod_action(action: ModAction, ctx: &mut Context) {
                     }
                     ModActionType::BadWordDelete => {
                         e.field("Type", "Word Filter", false);
-                    },
+                    }
                     ModActionType::ClearStrikes => {
                         e.field("Type", "Strikelog Clear", false);
                     }
