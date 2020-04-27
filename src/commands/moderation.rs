@@ -280,7 +280,23 @@ pub fn modstrike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
             });
             m
         })?;
-    } else {
+    } else if modify_thing == "withdraw" {
+        strikes.execute("UPDATE strikes SET is_withdrawn = '1' WHERE id = ?1", params![case_id])?;
+        msg.channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Moderation");
+                e.description(format!("Sucessfully withdrew case #{}", case_id));
+                e.colour(Colour::DARK_GREEN);
+                e.footer(|f| {
+                    f.text(format!("Requested by {}", &msg.author.name));
+                    f
+                });
+                e
+            });
+            m
+        })?;
+    } 
+    else {
         msg.channel_id.send_message(&ctx, |m| {
             m.embed(|e| {
                 e.title("Moderation");
