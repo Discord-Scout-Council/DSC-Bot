@@ -44,7 +44,7 @@ struct Points;
 struct Owner;
 
 #[group]
-#[commands(strike, strikelog, wordfilter, clearstrikes, modstrike)]
+#[commands(strike, strikelog, wordfilter, clearstrikes, modstrike, getcase)]
 struct Moderation;
 
 #[group]
