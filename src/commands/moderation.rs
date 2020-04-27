@@ -213,6 +213,7 @@ pub fn global(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 #[description = "Clears *all* of a users strikes."]
 #[usage("<User>")]
 #[checks(Moderator)]
+#[only_in(guilds)]
 pub fn clearstrikes(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let strikes = get_strike_database(&msg.guild_id.unwrap().as_u64());
     let target = args.parse::<UserId>().unwrap();
@@ -257,6 +258,7 @@ pub fn clearstrikes(ctx: &mut Context, msg: &Message, mut args: Args) -> Command
 #[usage("<Case Number> <Thing to modify> <What to modify it to>")]
 #[min_args(3)]
 #[checks(Moderator)]
+#[only_in(guilds)]
 pub fn modstrike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let strikes = get_strike_database(&msg.guild_id.unwrap().as_u64());
     let case_id = &args.single::<u32>()?;
