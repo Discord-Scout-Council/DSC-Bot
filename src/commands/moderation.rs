@@ -44,7 +44,7 @@ pub fn strike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
     };
     strike_conn
         .execute(
-            "INSERT INTO strikes (userid, reason, moderator) VALUES (?1, ?2, ?3)",
+            "INSERT INTO strikes (userid, reason, moderator,is_withdrawn) VALUES (?1, ?2, ?3, 0)",
             params![strike.user.as_u64().to_string(), strike.reason, strike.moderator.as_u64().to_string()],
         )
         .unwrap();
