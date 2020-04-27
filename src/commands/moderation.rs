@@ -251,3 +251,50 @@ pub fn clearstrikes(ctx: &mut Context, msg: &Message, mut args: Args) -> Command
 
     Ok(())
 }
+
+#[command]
+#[description = "Modifies a current strike"]
+#[usage("<Case Number> <Thing to modify> <What to modify it to>")]
+#[min_args(3)]
+#[checks(Moderator)]
+pub fn modstrike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    let strikes = get_strike_database(&msg.guild_id.unwrap().as_u64());
+    let case_id = &args.single::<u32>()?;
+    let modify_thing = &args.single::<String>().unwrap().to_lowercase();
+    let new_value = args.single::<String>().unwrap();
+
+    if modify_thing == "reason" {
+        strikes.execute("UPDATE strikes SET reason = ?1 WHERE id = ?2", params![new_value, case_id])?;
+        msg.channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Moderation");
+                e.description(format!("Successfully modified case {}!", case_id.to_string()));
+                e.field("Field", "Reason", true);
+                e.field("New Value", new_value, true);
+                e.colour(Colour::DARK_GREEN);
+                e.footer(|f| {
+                    f.text(format!("Requested by {}", &msg.author.name));
+                    f
+                });
+                e
+            });
+            m
+        })?;
+    } else {
+        msg.channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Moderation");
+                e.description("You can only modify a strike's reason.");
+                e.colour(Colour::RED);
+                e.footer(|f| {
+                    f.text(format!("Requested by {}", &msg.author.name));
+                    f
+                });
+                e
+            });
+            m
+        })?;
+    }
+
+    Ok(())
+}
