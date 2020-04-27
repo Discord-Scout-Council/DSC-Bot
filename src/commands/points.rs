@@ -123,18 +123,18 @@ pub fn leaderboard(ctx: &mut Context, msg: &Message) -> CommandResult {
         leaderboard.push(message);
     }
 
+    let mut fields: Vec<(String, String, bool)> = Vec::with_capacity(topList.len());
+    for (i, p) in topList.iter().enumerate() {
+        let num = i + 1;
+        fields.push((num.to_string(), format!("{} - {}", p.id.to_user(&ctx).unwrap().name, &p.points.to_string()), false));
+    }
+
     msg.channel_id
         .send_message(&ctx.http, |m| {
             m.embed(|e| {
                 e.title(&guild.name);
 
-                e.fields(vec![
-                    ("1.", &leaderboard[0], false),
-                    ("2.", &leaderboard[1], false),
-                    ("3.", &leaderboard[2], false),
-                    ("4.", &leaderboard[3], false),
-                    ("5.", &leaderboard[4], false),
-                ]);
+                e.fields(fields);
 
                 e
             });
