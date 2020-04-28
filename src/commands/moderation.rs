@@ -26,7 +26,8 @@ struct StrikeLog {
     user: UserId,
     reason: String,
     moderator: UserId,
-    case_id: String
+    case_id: String,
+    is_withdrawn: u32
 }
 
 #[command]
@@ -44,8 +45,8 @@ pub fn strike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
     };
     strike_conn
         .execute(
-            "INSERT INTO strikes (userid, reason, moderator) VALUES (?1, ?2, ?3)",
-            params![strike.user.as_u64().to_string(), strike.reason, strike.moderator.as_u64().to_string()],
+            "INSERT INTO strikes (userid, reason, moderator, is_withdrawn) VALUES (?1, ?2, ?3, ?4)",
+            params![strike.user.as_u64().to_string(), strike.reason, strike.moderator.as_u64().to_string(), "0"],
         )
         .unwrap();
 
@@ -73,7 +74,7 @@ pub fn strikelog(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
     let target_user = args.parse::<UserId>().unwrap();
 
     let mut stmt = strike_conn
-        .prepare("SELECT reason,moderator,id FROM strikes WHERE userid = (?)")
+        .prepare("SELECT reason,moderator,id,is_withdrawn FROM strikes WHERE userid = (?)")
         .unwrap();
     let mut rows = stmt
         .query(params![target_user.as_u64().to_string()])
@@ -84,11 +85,13 @@ pub fn strikelog(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
         let reason = row.get::<usize, String>(0);
         let moderator = row.get::<usize, String>(1);
         let case_id = row.get::<usize, u32>(2);
+        let is_withdrawn = row.get::<usize, String>(3);
         let strike = StrikeLog {
             user: target_user,
             moderator: moderator.unwrap().parse::<u64>().unwrap().into(),
             reason: reason.unwrap(),
-            case_id: case_id.unwrap().to_string()
+            case_id: case_id.unwrap().to_string(),
+            is_withdrawn: is_withdrawn.unwrap().parse::<u32>().unwrap(),
         };
         strikes.push(strike);
     }
@@ -96,7 +99,11 @@ pub fn strikelog(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
     let mut result_vec: Vec<(String, String, bool)> = Vec::new();
 
     for (i, r) in strikes.iter().enumerate() {
-        result_vec.push((format!("Case #{}",r.case_id), r.reason.clone(), false));
+        if r.is_withdrawn == 1 {
+            result_vec.push((format!("Case #{}", r.case_id), format!("~~{}~~", r.reason.clone()), false));
+        } else {
+            result_vec.push((format!("Case #{}",r.case_id), r.reason.clone(), false));
+        }
     }
 
     msg.channel_id
