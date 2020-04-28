@@ -28,7 +28,7 @@ use rusqlite::{params, Connection, Result};
 mod checks;
 mod commands;
 mod util;
-use crate::commands::{general::*, moderation::*, owner::*, points::*, qotd::*, settings::*};
+use crate::commands::{general::*, moderation::*, owner::*, points::*, qotd::*, settings::*, leveling::*};
 use util::*;
 
 #[group]
@@ -54,6 +54,10 @@ struct Qotd;
 #[group]
 #[commands(serversettings, resetsettings)]
 struct Settings;
+
+#[group]
+#[commands(level)]
+struct Leveling;
 
 struct Handler;
 impl EventHandler for Handler {
@@ -206,7 +210,8 @@ fn main() {
             .group(&OWNER_GROUP)
             .group(&MODERATION_GROUP)
             .group(&QOTD_GROUP)
-            .group(&SETTINGS_GROUP),
+            .group(&SETTINGS_GROUP)
+            .group(&LEVELING_GROUP),
     );
 
     if let Err(err) = client.start() {
