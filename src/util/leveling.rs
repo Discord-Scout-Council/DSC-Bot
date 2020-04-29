@@ -4,14 +4,14 @@
  */
 
 pub fn get_level_cost(level: u32) -> u64 {
-    let cost = 10 * 5u64.pow(level);
+    let cost = 10f64 * 1.3f64.powf(level as f64);
 
-    cost
+    cost.round() as u64
 }
 
 pub fn get_level_from_points(points: u64) -> u32 {
     let points = points as f64;
-    let level = (points/10f64).log(5f64).floor();
+    let level = (points/10f64).log(1.3f64).floor();
 
     level.round() as u32
 }

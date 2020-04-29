@@ -20,7 +20,8 @@
         None => 0,
     };
     let level = get_level_from_points(points);
-    let cost_to_next_level = get_level_cost(level + 1);
+    let mut cost_to_next_level = get_level_cost(level + 1);
+    cost_to_next_level = cost_to_next_level - points;
     msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
             e.title(title);
