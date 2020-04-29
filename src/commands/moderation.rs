@@ -3,12 +3,12 @@
  *   All rights reserved.
  */
 
+use log::{error, info, warn};
 use rusqlite::{params, Connection, Result, RowIndex};
 use serenity::framework::standard::{macros::command, Args, CommandResult, StandardFramework};
 use serenity::model::id::UserId;
 use serenity::utils::Colour;
 use serenity::{model::channel::Message, model::user::User, prelude::*};
-use log::{warn,info,error};
 
 use crate::checks::*;
 
@@ -20,14 +20,14 @@ use crate::util::{
 struct Strike {
     user: UserId,
     reason: Option<String>,
-    moderator: UserId
+    moderator: UserId,
 }
 
 struct StrikeLog {
     user: UserId,
     reason: String,
     moderator: UserId,
-    case_id: String
+    case_id: String,
 }
 
 #[command]
@@ -46,7 +46,11 @@ pub fn strike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
     strike_conn
         .execute(
             "INSERT INTO strikes (userid, reason, moderator,is_withdrawn) VALUES (?1, ?2, ?3, 0)",
-            params![strike.user.as_u64().to_string(), strike.reason, strike.moderator.as_u64().to_string()],
+            params![
+                strike.user.as_u64().to_string(),
+                strike.reason,
+                strike.moderator.as_u64().to_string()
+            ],
         )
         .unwrap();
 
@@ -89,7 +93,7 @@ pub fn strikelog(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
             user: target_user,
             moderator: moderator.unwrap().parse::<u64>().unwrap().into(),
             reason: reason.unwrap(),
-            case_id: case_id.unwrap().to_string()
+            case_id: case_id.unwrap().to_string(),
         };
         strikes.push(strike);
     }
@@ -97,7 +101,7 @@ pub fn strikelog(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
     let mut result_vec: Vec<(String, String, bool)> = Vec::new();
 
     for (i, r) in strikes.iter().enumerate() {
-        result_vec.push((format!("Case #{}",r.case_id), r.reason.clone(), false));
+        result_vec.push((format!("Case #{}", r.case_id), r.reason.clone(), false));
     }
 
     msg.channel_id
@@ -271,11 +275,17 @@ pub fn modstrike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
     let new_value = args.rest();
 
     if modify_thing == "reason" {
-        strikes.execute("UPDATE strikes SET reason = ?1 WHERE id = ?2", params![new_value, case_id])?;
+        strikes.execute(
+            "UPDATE strikes SET reason = ?1 WHERE id = ?2",
+            params![new_value, case_id],
+        )?;
         msg.channel_id.send_message(&ctx, |m| {
             m.embed(|e| {
                 e.title("Moderation");
-                e.description(format!("Successfully modified case {}!", case_id.to_string()));
+                e.description(format!(
+                    "Successfully modified case {}!",
+                    case_id.to_string()
+                ));
                 e.field("Field", "Reason", true);
                 e.field("New Value", new_value, true);
                 e.colour(Colour::DARK_GREEN);
@@ -288,7 +298,10 @@ pub fn modstrike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
             m
         })?;
     } else if modify_thing == "withdraw" {
-        strikes.execute("UPDATE strikes SET is_withdrawn = '1' WHERE id = ?1", params![case_id])?;
+        strikes.execute(
+            "UPDATE strikes SET is_withdrawn = '1' WHERE id = ?1",
+            params![case_id],
+        )?;
         msg.channel_id.send_message(&ctx, |m| {
             m.embed(|e| {
                 e.title("Moderation");
@@ -302,8 +315,7 @@ pub fn modstrike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
             });
             m
         })?;
-    } 
-    else {
+    } else {
         msg.channel_id.send_message(&ctx, |m| {
             m.embed(|e| {
                 e.title("Moderation");
@@ -329,12 +341,23 @@ pub fn modstrike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
 #[only_in(guilds)]
 pub fn getcase(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let strikes = get_strike_database(&msg.guild_id.unwrap().as_u64());
-    let mut stmt = strikes.prepare("SELECT userid,moderator,reason,is_withdrawn FROM strikes WHERE id = ?")?;
+    let mut stmt =
+        strikes.prepare("SELECT userid,moderator,reason,is_withdrawn FROM strikes WHERE id = ?")?;
     let mut rows = stmt.query(params![args.current()])?;
     let row = rows.next().unwrap().unwrap();
-    let user_id: UserId = row.get::<usize, String>(0).unwrap().parse::<u64>().unwrap().into();
+    let user_id: UserId = row
+        .get::<usize, String>(0)
+        .unwrap()
+        .parse::<u64>()
+        .unwrap()
+        .into();
     let user: User = user_id.to_user(&ctx)?;
-    let moderator_id: UserId = row.get::<usize, String>(1).unwrap().parse::<u64>().unwrap().into();
+    let moderator_id: UserId = row
+        .get::<usize, String>(1)
+        .unwrap()
+        .parse::<u64>()
+        .unwrap()
+        .into();
     let moderator = moderator_id.to_user(&ctx)?;
     let reason = row.get::<usize, String>(2).unwrap();
     let is_withdrawn = match row.get::<usize, String>(3).unwrap().parse::<i32>().unwrap() {
@@ -349,7 +372,7 @@ pub fn getcase(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
             e.fields(vec![
                 ("User", &user.name, true),
                 ("Moderator", &moderator.name, true),
-                ("Is Withdrawn?", &is_withdrawn.to_string(), true)
+                ("Is Withdrawn?", &is_withdrawn.to_string(), true),
             ]);
             e.footer(|f| {
                 f.text(format!("Requested by {}", &msg.author.name));

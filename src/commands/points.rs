@@ -126,7 +126,15 @@ pub fn leaderboard(ctx: &mut Context, msg: &Message) -> CommandResult {
     let mut fields: Vec<(String, String, bool)> = Vec::with_capacity(topList.len());
     for (i, p) in topList.iter().enumerate() {
         let num = i + 1;
-        fields.push((num.to_string(), format!("{} - {}", p.id.to_user(&ctx).unwrap().name, &p.points.to_string()), false));
+        fields.push((
+            num.to_string(),
+            format!(
+                "{} - {}",
+                p.id.to_user(&ctx).unwrap().name,
+                &p.points.to_string()
+            ),
+            false,
+        ));
     }
 
     msg.channel_id

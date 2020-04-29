@@ -3,8 +3,8 @@
  *   All rights reserved.
  */
 pub mod data;
-pub mod moderation;
 pub mod leveling;
+pub mod moderation;
 use serde::Deserialize;
 use serenity::model::channel::Message;
 use std::fs;

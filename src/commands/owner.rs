@@ -45,7 +45,11 @@ pub fn initcache(ctx: &mut Context, msg: &Message) -> CommandResult {
         m
     })?;
 
-    warn!("{} just initialized the guild cache for guild {}", &msg.author.name, &msg.guild_id.unwrap().as_u64());
+    warn!(
+        "{} just initialized the guild cache for guild {}",
+        &msg.author.name,
+        &msg.guild_id.unwrap().as_u64()
+    );
 
     Ok(())
 }

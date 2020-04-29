@@ -11,7 +11,7 @@ pub fn get_level_cost(level: u32) -> u64 {
 
 pub fn get_level_from_points(points: u64) -> u32 {
     let points = points as f64;
-    let level = (points/10f64).log(1.3f64).floor();
+    let level = (points / 10f64).log(1.3f64).floor();
 
     level.round() as u32
 }

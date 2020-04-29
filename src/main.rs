@@ -25,12 +25,14 @@ use std::{collections::HashSet, env};
 use pickledb::*;
 use rusqlite::{params, Connection, Result};
 
-use log::{error, info, debug};
+use log::{debug, error, info};
 
 mod checks;
 mod commands;
 mod util;
-use crate::commands::{general::*, moderation::*, owner::*, points::*, qotd::*, settings::*, leveling::*};
+use crate::commands::{
+    general::*, leveling::*, moderation::*, owner::*, points::*, qotd::*, settings::*,
+};
 use util::*;
 
 mod prelude;
@@ -171,7 +173,10 @@ impl EventHandler for Handler {
 
     fn guild_create(&self, ctx: Context, guild: Guild, _is_new: bool) {
         if _is_new {
-            info!("Joined new guild {}. Intializing guild settings.", &guild.name);
+            info!(
+                "Joined new guild {}. Intializing guild settings.",
+                &guild.name
+            );
         }
         let mut cache = data::get_pickle_database(&guild.id.as_u64(), "settings.db");
         if let None = cache.get::<String>("qotd_channel") {
@@ -220,7 +225,10 @@ fn main() {
     debug!("Initializing client");
     client.with_framework(
         StandardFramework::new()
-            .configure(|c| c.prefix(&env::var("DISCORD_PREFIX").unwrap()).owners(owners))
+            .configure(|c| {
+                c.prefix(&env::var("DISCORD_PREFIX").unwrap())
+                    .owners(owners)
+            })
             .help(&HELP)
             .group(&GENERAL_GROUP)
             .group(&POINTS_GROUP)
