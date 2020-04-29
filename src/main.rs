@@ -42,7 +42,7 @@ mod prelude;
 struct General;
 
 #[group]
-#[commands(points, leaderboard)]
+#[commands(points, leaderboard, modpoints)]
 struct Points;
 
 #[group]

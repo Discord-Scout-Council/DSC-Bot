@@ -4,13 +4,12 @@
  */
 
 use pickledb::*;
-use serenity::framework::standard::{macros::command, CommandResult, StandardFramework};
-use serenity::{
-    model::{channel::Message, id::UserId},
-    prelude::*,
-};
+use crate::prelude::*;
+use crate::checks::*;
 
 use crate::util::data::get_pickle_database;
+
+use log::{error, debug};
 
 use std::cmp::Ordering;
 
@@ -150,6 +149,58 @@ pub fn leaderboard(ctx: &mut Context, msg: &Message) -> CommandResult {
             m
         })
         .unwrap();
+
+    Ok(())
+}
+
+#[command]
+#[description="Allows a moderator to modify a user's points for the server"]
+#[num_args(2)]
+#[only_in(guilds)]
+#[checks(Moderator)]
+pub fn modpoints(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    let mut points_db = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "points.db");
+    let user: &UserId = &args.current().unwrap().parse::<UserId>().unwrap();
+    debug!("Attempting to locate guild via cache");
+    let guild_arc = &msg.guild(&ctx).unwrap();
+    let guild = guild_arc.read();
+    args.advance();
+    let points_mod = &args.current().unwrap().parse::<i64>().unwrap();
+    let current_points = match points_db.get::<u64>(&user.as_u64().to_string()) {
+        Some(i) => i,
+        None => {
+            error!("Could not find {}'s points for {}", user.to_user(&ctx).unwrap().name, &guild.name);
+            0
+        }
+    };
+    if current_points as i64 + points_mod < 0 {
+        msg.channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Points");
+                e.description("Cannot set a user's points to less than 0.");
+                e.colour(Colour::RED);
+                e
+            });
+            m
+        })?;
+    } else {
+        let new_points = current_points as i64 + points_mod;
+        points_db.set(&user.as_u64().to_string(), &new_points);
+        msg.channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Points");
+                e.description("Successfully modified the user's points!");
+                e.fields(vec![
+                    ("User", &user.to_user(&ctx).unwrap().name, true),
+                    ("Old Points", &current_points.to_string(), true),
+                    ("New Points", &new_points.to_string(), true),
+                ]);
+                e
+            });
+            m
+        })?;
+    }
+
 
     Ok(())
 }
