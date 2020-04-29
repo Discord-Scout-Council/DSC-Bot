@@ -8,6 +8,7 @@ use serenity::framework::standard::{macros::command, Args, CommandResult, Standa
 use serenity::model::id::UserId;
 use serenity::utils::Colour;
 use serenity::{model::channel::Message, model::user::User, prelude::*};
+use log::{warn,info,error};
 
 use crate::checks::*;
 
@@ -155,7 +156,9 @@ pub fn add(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             })?;
         }
         None => {
-            db.set(&args.rest(), &1)?;
+            if let Error = db.set(&args.rest(), &1) {
+                error!("Failed to add local banned word");
+            };
             msg.channel_id.send_message(&ctx, |m| {
                 m.embed(|e| {
                     e.title("Word Filter");
@@ -205,6 +208,8 @@ pub fn global(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 
         m
     })?;
+
+    warn!("Added a global banned word: {}", args.rest());
 
     Ok(())
 }

@@ -8,12 +8,15 @@ use pickledb::{PickleDb, PickleDbDumpPolicy};
 use serenity::framework::standard::{macros::command, CommandResult, StandardFramework};
 use serenity::{model::channel::Message, model::guild::Member, prelude::*};
 
+use log::warn;
+
 #[command]
 #[description = "Restarts the bot"]
 #[owners_only]
 pub fn restart(ctx: &mut Context, msg: &Message) -> CommandResult {
     msg.channel_id
         .say(&ctx.http, "Restarting bot, and applying new changes");
+    warn!("{} is restarting the bot!", &msg.author.name);
     ctx.shard.shutdown_clean();
     std::process::exit(0);
     Ok(())
@@ -41,6 +44,8 @@ pub fn initcache(ctx: &mut Context, msg: &Message) -> CommandResult {
 
         m
     })?;
+
+    warn!("{} just initialized the guild cache for guild {}", &msg.author.name, &msg.guild_id.unwrap().as_u64());
 
     Ok(())
 }
