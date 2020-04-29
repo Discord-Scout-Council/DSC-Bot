@@ -204,7 +204,7 @@ fn main() {
 
     let mut client = Client::new(token, Handler).expect("Err creating client");
 
-    info!("Getting owners");
+    debug!("Getting owners");
     let owners = match client.cache_and_http.http.get_current_application_info() {
         Ok(info) => {
             let mut set = HashSet::new();
@@ -215,7 +215,7 @@ fn main() {
         Err(why) => panic!("Coudln't get application info: {:?}", why),
     };
 
-    info!("Initializing client");
+    debug!("Initializing client");
     client.with_framework(
         StandardFramework::new()
             .configure(|c| c.prefix(&env::var("DISCORD_PREFIX").unwrap()).owners(owners))
