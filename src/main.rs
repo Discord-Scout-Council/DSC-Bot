@@ -139,7 +139,6 @@ impl EventHandler for Handler {
             moderation::log_mod_action(action, &mut ctx.clone());
             msg.delete(&ctx).unwrap();
         }
-        let config = util::parse_config();
         let mut db = util::data::get_pickle_database(
             msg.guild_id.unwrap().as_u64(),
             &String::from("points.db"),
@@ -149,7 +148,7 @@ impl EventHandler for Handler {
             db.set(&msg.author.id.to_string(), &0).unwrap();
         }*/
         debug!("Computing points");
-        if !msg.content.starts_with(config.prefix) {
+        if !msg.content.starts_with(&env::var("DISCORD_PREFIX").unwrap()) {
             if !msg
                 .channel_id
                 .name(ctx)
