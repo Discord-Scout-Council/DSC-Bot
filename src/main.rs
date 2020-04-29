@@ -20,7 +20,7 @@ use serenity::{
     prelude::*,
     utils::Colour,
 };
-use std::collections::HashSet;
+use std::{collections::HashSet, env};
 
 use pickledb::*;
 use rusqlite::{params, Connection, Result};
@@ -185,9 +185,9 @@ fn help(
 }
 
 fn main() {
-    let config: util::BotConfig = util::parse_config();
+    kankyo::init().expect("Failed to load .env file");
 
-    let token = config.token.clone();
+    let token = env::var("DISCORD_TOKEN").unwrap();
 
     let mut client = Client::new(token, Handler).expect("Err creating client");
 
@@ -203,7 +203,7 @@ fn main() {
 
     client.with_framework(
         StandardFramework::new()
-            .configure(|c| c.prefix(&config.prefix.to_string()).owners(owners))
+            .configure(|c| c.prefix(&env::var("DISCORD_PREFIX").unwrap()).owners(owners))
             .help(&HELP)
             .group(&GENERAL_GROUP)
             .group(&POINTS_GROUP)
