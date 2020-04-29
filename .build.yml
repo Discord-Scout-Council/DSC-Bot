@@ -5,10 +5,12 @@ image: archlinux
 packages:
 - rustup
 repositories: {}
-secrets: []
+secrets:
+    - 0467a7c3-16d9-491c-9874-807bce4f2616
+    - a88c3ffc-9bb0-451e-bf59-ef6198da6754
 shell: false
 sources:
-- https://git.sr.ht/~muirrum/campmasterconstantine#7c70e2bec47b64f808632db2006f3312dab82f9b
+- https://git.sr.ht/~muirrum/campmasterconstantine
 tasks:
 - setup: |
     rustup toolchain install nightly stable
@@ -19,6 +21,11 @@ tasks:
     cd campmasterconstantine/
     cargo build --verbose
     cargo test --verbose
+- deploy: |
+    rustup default stable
+    cd campmasterconstantine
+    cargo build --release
+    scp target/release/campmaster-constantine osalter@kronos.devosmium.xyz:/usr/bot/campmasterconstantine/cc-update
 - nightly: |-
     rustup default nightly
     cd campmasterconstantine/
