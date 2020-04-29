@@ -25,6 +25,8 @@ use std::{collections::HashSet, env};
 use pickledb::*;
 use rusqlite::{params, Connection, Result};
 
+use log::{error, info, debug};
+
 mod checks;
 mod commands;
 mod util;
@@ -62,7 +64,7 @@ struct Leveling;
 struct Handler;
 impl EventHandler for Handler {
     fn ready(&self, ctx: Context, ready: Ready) {
-        println!("{} logged in successfully!", ready.user.name);
+        info!("Logged in to Discord successfully");
         let activity = Activity::streaming("Pioneering", "https://devosmium.xyz");
         ctx.set_presence(Some(activity), OnlineStatus::DoNotDisturb);
     }
@@ -93,6 +95,7 @@ impl EventHandler for Handler {
     //* Points
     fn message(&self, ctx: Context, msg: Message) {
         //* Banned Words
+        debug!("Checking banned words list");
         let guild = &msg.guild_id.unwrap();
         if util::moderation::contains_banned_word(&msg.content, &guild.as_u64()) {
             msg.channel_id
@@ -141,7 +144,7 @@ impl EventHandler for Handler {
             println!("Did not find user {}", msg.author.id);
             db.set(&msg.author.id.to_string(), &0).unwrap();
         }*/
-
+        debug!("Computing points");
         if !msg.content.starts_with(config.prefix) {
             if !msg
                 .channel_id
@@ -154,9 +157,9 @@ impl EventHandler for Handler {
                     Some(i) => i,
                     None => 0,
                 };
-                println!("Current points: {}", current_points);
+                debug!("Current points: {}", current_points);
                 let total_points = current_points + points;
-                println!("Total Points: {}", total_points);
+                debug!("Total Points: {}", total_points);
 
                 db.set(&msg.author.id.to_string(), &total_points)
                     .expect("Could not add points");
@@ -165,6 +168,9 @@ impl EventHandler for Handler {
     }
 
     fn guild_create(&self, ctx: Context, guild: Guild, _is_new: bool) {
+        if _is_new {
+            info!("Joined new guild {}. Intializing guild settings.", &guild.name);
+        }
         let mut cache = data::get_pickle_database(&guild.id.as_u64(), "settings.db");
         if let None = cache.get::<String>("qotd_channel") {
             data::init_guild_settings(&mut cache);
@@ -186,11 +192,19 @@ fn help(
 
 fn main() {
     kankyo::init().expect("Failed to load .env file");
+    env_logger::init();
 
-    let token = env::var("DISCORD_TOKEN").unwrap();
+    let token = match env::var("DISCORD_TOKEN") {
+        Ok(t) => t,
+        Error => {
+            error!("Could not find discord token in environment");
+            String::from("")
+        }
+    };
 
     let mut client = Client::new(token, Handler).expect("Err creating client");
 
+    info!("Getting owners");
     let owners = match client.cache_and_http.http.get_current_application_info() {
         Ok(info) => {
             let mut set = HashSet::new();
@@ -201,6 +215,7 @@ fn main() {
         Err(why) => panic!("Coudln't get application info: {:?}", why),
     };
 
+    info!("Initializing client");
     client.with_framework(
         StandardFramework::new()
             .configure(|c| c.prefix(&env::var("DISCORD_PREFIX").unwrap()).owners(owners))
@@ -214,7 +229,8 @@ fn main() {
             .group(&LEVELING_GROUP),
     );
 
+    info!("Starting client");
     if let Err(err) = client.start() {
-        eprintln!("{:?}", err);
+        error!("Client error: {:?}", err);
     }
 }
