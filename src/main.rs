@@ -33,6 +33,8 @@ mod util;
 use crate::commands::{general::*, moderation::*, owner::*, points::*, qotd::*, settings::*, leveling::*};
 use util::*;
 
+mod prelude;
+
 #[group]
 #[commands(ping, about, serverinfo, botsuggest)]
 struct General;
