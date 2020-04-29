@@ -1,20 +1,27 @@
+arch: null
+artifacts: []
+environment: {}
 image: archlinux
 packages:
-  - rustup
+- rustup
+repositories: {}
+secrets: []
+shell: false
 sources:
-  - https://git.sr.ht/~muirrum/campmasterconstantine
+- https://git.sr.ht/~muirrum/campmasterconstantine#7c70e2bec47b64f808632db2006f3312dab82f9b
 tasks:
-  - setup: |
-      rustup toolchain install nightly stable
-      cd campmasterconstantine/
-      rustup run stable cargo fetch
-  - stable: |
-      rustup default stable
-      cd campmasterconstantine/
-      cargo build --verbose
-      cargo test --verbose
-  - nightly: |
-      rustup default nightly
-      cd campmasterconstantine/
-      cargo build --verbose ||:
-      cargo test --verbose  ||:
+- setup: |
+    rustup toolchain install nightly stable
+    cd campmasterconstantine/
+    rustup run stable cargo fetch
+- stable: |
+    rustup default stable
+    cd campmasterconstantine/
+    cargo build --verbose
+    cargo test --verbose
+- nightly: |-
+    rustup default nightly
+    cd campmasterconstantine/
+    cargo build --verbose ||:
+    cargo test --verbose  ||:
+triggers: []
