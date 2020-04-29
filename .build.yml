@@ -1,19 +1,20 @@
-image: alpine/edge
-packages: 
-  - rust
-  - cargo
-
-sources: 
-  - git@git.sr.ht:~muirrum/campmasterconstantine
-
-secrets:
-  -  fd334eb2-1eea-49c9-92e0-3eb1fb331615
-
+image: archlinux
+packages:
+  - rustup
+sources:
+  - https://git.sr.ht/~muirrum/campmasterconstantine
 tasks:
-  - build: |
-      cd campmasterconstantine
-      cargo build
-  - deploy: |
-      cd campmasterconstantine
-      cargo build --release
-      scp target/release/campmaster-constantine osalter@kronos.devosmium.xyz:/usr/bot/campmasterconstantine/cc-update
+  - setup: |
+      rustup toolchain install nightly stable
+      cd campmasterconstantine/
+      rustup run stable cargo fetch
+  - stable: |
+      rustup default stable
+      cd campmasterconstantine/
+      cargo build --verbose
+      cargo test --verbose
+  - nightly: |
+      rustup default nightly
+      cd campmasterconstantine/
+      cargo build --verbose ||:
+      cargo test --verbose  ||:
