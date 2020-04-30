@@ -242,12 +242,14 @@ fn main() {
             .on_dispatch_error(|context, msg, error| {
                 match error {
                     NotEnoughArguments { min, given } => {
-                        let s = format!("Need {} arguments, only got {}", min, given);
+                        let mut s = format!("Need {} arguments, only got {}.", min, given);
+                        s.push_str(&" Try using `help <command>` to get usage.");
 
                         msg.channel_id.say(&context, &s);
                     },
                     TooManyArguments { max, given} => {
-                        let s = format!("Too many arguments. Expected {}, got {}", max, given);
+                        let mut s = format!("Too many arguments. Expected {}, got {}.", max, given);
+                        s.push_str(" Try using `help <command>` to get usage.");
 
                         msg.channel_id.say(&context, &s);
                     },
