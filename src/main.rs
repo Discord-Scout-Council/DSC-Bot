@@ -9,6 +9,8 @@ use serenity::{
         help_commands,
         macros::{group, help},
         Args, CommandGroup, CommandResult, HelpOptions, StandardFramework,
+        Reason,
+        DispatchError::{NotEnoughArguments,TooManyArguments, CheckFailed, OnlyForGuilds, OnlyForOwners, LackingPermissions}
     },
     model::{
         channel::{Message, Reaction, ReactionType},
@@ -227,6 +229,7 @@ fn main() {
             .configure(|c| {
                 c.prefix(&env::var("DISCORD_PREFIX").unwrap())
                     .owners(owners)
+                    .allow_dm(false)
             })
             .help(&HELP)
             .group(&GENERAL_GROUP)
@@ -235,7 +238,29 @@ fn main() {
             .group(&MODERATION_GROUP)
             .group(&QOTD_GROUP)
             .group(&SETTINGS_GROUP)
-            .group(&LEVELING_GROUP),
+            .group(&LEVELING_GROUP)
+            .on_dispatch_error(|context, msg, error| {
+                match error {
+                    NotEnoughArguments { min, given } => {
+                        let s = format!("Need {} arguments, only got {}", min, given);
+
+                        msg.channel_id.say(&context, &s);
+                    },
+                    TooManyArguments { max, given} => {
+                        let s = format!("Too many arguments. Expected {}, got {}", max, given);
+
+                        msg.channel_id.say(&context, &s);
+                    },
+                    CheckFailed ( stri, reason) => {
+                        info!("{}", stri);
+                        info!("{} failed to pass check {}", &msg.author.name, stri);
+
+                        msg.channel_id.say(&context, "You do not have permission to use this command!");
+
+                    }
+                    _ => error!("Unhandled dispatch error.")
+                }
+            })
     );
 
     info!("Starting client");
