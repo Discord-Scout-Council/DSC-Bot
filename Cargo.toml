@@ -1,9 +1,9 @@
 [package]
 name = "campmaster-constantine"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Owen Salter <owen@devosmium.xyz>"]
 edition = "2018"
-license-file = "license"
+license = "GPL-3.0"
 readme = "README.md"
 description = "A General-Purpose Discord bot"
 keywords = ["discord", "bot"]
