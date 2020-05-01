@@ -61,7 +61,7 @@ struct Handler;
 impl EventHandler for Handler {
     fn ready(&self, ctx: Context, ready: Ready) {
         info!("Logged in to Discord successfully");
-        let activity = Activity::streaming("Pioneering", "https://devosmium.xyz");
+        let activity = Activity::playing("with bans");
         ctx.set_presence(Some(activity), OnlineStatus::DoNotDisturb);
     }
     fn reaction_add(&self, ctx: Context, reaction: Reaction) {
