@@ -64,29 +64,6 @@ impl EventHandler for Handler {
         let activity = Activity::playing("with bans");
         ctx.set_presence(Some(activity), OnlineStatus::DoNotDisturb);
     }
-    fn reaction_add(&self, ctx: Context, reaction: Reaction) {
-        let msg = reaction.message(ctx.http).unwrap();
-        let reactions = msg.reactions;
-        for r in &reactions {
-            match &r.reaction_type {
-                ReactionType::Custom { animated, id, name } => {
-                    if id.as_u64() == &701900676313383092 {
-                        if (r.count >= 2) {
-                            println!("Starboarded!");
-                        }
-                    }
-                }
-                ReactionType::Unicode(emoji) => {
-                    if emoji == "⭐" {
-                        if (r.count >= 1) {
-                            println!("Starboarded!");
-                        }
-                    }
-                }
-                __ => (),
-            }
-        }
-    }
 
     //* Points
     fn message(&self, ctx: Context, msg: Message) {
