@@ -67,11 +67,20 @@ pub fn get_strike_database(guild_id: &u64) -> Connection {
     conn
 }
 
+pub fn get_discord_banlist() -> Connection {
+    let conn = Connection::open("data/dbans.db").unwrap();
+    conn.execute("CREATE TABLE IF NOT EXISTS dbans (
+        id INTEGER PRIMARY KEY,
+        userid TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        guild_id TEXT NOT NULL,
+        is_withdrawn INTEGER NOT NULL
+    )", params![]).unwrap();
+
+    conn
+}
+
 pub fn init_guild_settings(db: &mut PickleDb) {
     //* Question of the Day
-    db.set("qotd_role", &0u64);
-    db.set("qotd_channel", &0u64);
-    db.set("qotd_suggest_channel", &0u64);
-
     db.set("modlogs_channel", &0u64);
 }

@@ -1,5 +1,5 @@
 [package]
-name = "campmaster-constantine"
+name = "dscbot"
 version = "0.1.1"
 authors = ["Owen Salter <owen@devosmium.xyz>"]
 edition = "2018"

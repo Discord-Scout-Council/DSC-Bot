@@ -20,14 +20,12 @@ pub fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
 pub fn about(ctx: &mut Context, msg: &Message) -> CommandResult {
     msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
-            e.title("Campmaster Constantine");
-            e.description("A Discord Bot for Camp Quarantine");
+            e.title("DSC Bot");
+            e.description("A Discord Bot for Discord Scout Council");
             e.field("Creator", "<@118455061222260736>", true);
-            e.field("Logo", "<@678816040146436117>", true);
-            e.field("Project Hub", "[hub.sr.ht](https://hub.sr.ht/~muirrum/Campmaster-Constantine/)", false);
             e.field("Report an Issue or Suggestion", "cbotsuggest <Suggestion>", true);
 
-            e.thumbnail("https://cdn.discordapp.com/attachments/697917247368462336/702621900022480986/image0.png");
+            e.thumbnail("https://cdn.discordapp.com/attachments/705877153513865328/705877361304010793/DSC_Logo.png");
 
             e
         });
@@ -86,11 +84,11 @@ pub fn serverinfo(ctx: &mut Context, msg: &Message) -> CommandResult {
 #[usage("<Suggestion>")]
 #[min_args(1)]
 pub fn botsuggest(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let suggest_channel = ctx.cache.read().guild_channel(662067035999698987).unwrap();
+    let suggest_channel = ctx.cache.read().guild_channel(668964814684422184).unwrap();
     let suggestion = args.rest();
     suggest_channel.read().send_message(&ctx, |m| {
         m.embed(|e| {
-            e.title("Campmaster Suggestion");
+            e.title("Bot Suggestion");
             e.description(suggestion);
             e.field("Suggester", &msg.author.name, true);
             e.field("Guild", &msg.guild(&ctx).unwrap().read().name, true);
@@ -103,7 +101,7 @@ pub fn botsuggest(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
 
     msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
-            e.title("Campmaster Suggestion");
+            e.title("Bot Suggestion");
             e.description("Successfully sent your suggestion!");
             e.colour(Colour::DARK_GREEN);
 

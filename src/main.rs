@@ -16,8 +16,8 @@ use serenity::{
         channel::{Message, Reaction, ReactionType},
         gateway::{Activity, ActivityType, Ready},
         guild::Guild,
-        id::UserId,
-        user::OnlineStatus,
+        id::{UserId, GuildId},
+        user::{OnlineStatus, User},
     },
     prelude::*,
     utils::Colour,
@@ -33,7 +33,7 @@ mod checks;
 mod commands;
 mod util;
 use crate::commands::{
-    general::*, leveling::*, moderation::*, owner::*, points::*, qotd::*, settings::*,
+    general::*, moderation::*, owner::*, settings::*,
 };
 use util::*;
 
@@ -43,9 +43,6 @@ mod prelude;
 #[commands(ping, about, serverinfo, botsuggest)]
 struct General;
 
-#[group]
-#[commands(points, leaderboard, modpoints)]
-struct Points;
 
 #[group]
 #[commands(restart, initcache)]
@@ -55,17 +52,10 @@ struct Owner;
 #[commands(strike, strikelog, wordfilter, clearstrikes, modstrike, getcase)]
 struct Moderation;
 
-#[group]
-#[commands(qotd)]
-struct Qotd;
 
 #[group]
 #[commands(serversettings, resetsettings)]
 struct Settings;
-
-#[group]
-#[commands(level)]
-struct Leveling;
 
 struct Handler;
 impl EventHandler for Handler {
@@ -145,31 +135,36 @@ impl EventHandler for Handler {
             msg.guild_id.unwrap().as_u64(),
             &String::from("points.db"),
         );
-        /*if let None = db.get::<u64>(&msg.author.id.to_string()) {
-            println!("Did not find user {}", msg.author.id);
-            db.set(&msg.author.id.to_string(), &0).unwrap();
-        }*/
-        debug!("Computing points");
-        if !msg.content.starts_with(&env::var("DISCORD_PREFIX").unwrap()) {
-            if !msg
-                .channel_id
-                .name(ctx)
-                .unwrap()
-                .contains(&String::from("bot"))
-            {
-                let points: u64 = rand::thread_rng().gen_range(1, 4);
-                let current_points: u64 = match db.get(&msg.author.id.to_string()) {
-                    Some(i) => i,
-                    None => 0,
-                };
-                debug!("Current points: {}", current_points);
-                let total_points = current_points + points;
-                debug!("Total Points: {}", total_points);
+    }
 
-                db.set(&msg.author.id.to_string(), &total_points)
-                    .expect("Could not add points");
-            }
+    fn guild_ban_addition(&self, ctx: Context, guild_id: GuildId, banned_user: User) {
+        let db = data::get_discord_banlist();
+        if let error = db.execute("INSERT INTO dbans (userid,reason,guild_id,is_withdrawn) VALUES (?1,?2,?3,0)", params![banned_user.id.as_u64().to_string(),"No Reason Provided", guild_id.as_u64().to_string()]) {
+            error!("Encountered an error adding a ban for {}", banned_user.name);
+        };
+        let blacklist_channel = ctx.http.get_channel(646545388576178178).unwrap();
+        let blacklist_channel_id = blacklist_channel.id();
+        let guild = ctx.http.get_guild(guild_id.as_u64().clone()).unwrap();
+
+        if let error = blacklist_channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("New Ban Detected");
+                e.fields(vec![
+                    ("Server", &guild.name, false),
+                    ("Name", &format!("{}#{}", &banned_user.name, &banned_user.discriminator), false),
+                    ("ID", &banned_user.id.as_u64().to_string(), false)
+                ]);
+                if let Some(url) = &banned_user.avatar_url() {
+                    e.thumbnail(url);
+                }
+                e
+            });
+            m
+        }) {
+            error!("Encountered an error trying to notify DSC about a new ban for {}", banned_user.name);
         }
+
+
     }
 
     fn guild_create(&self, ctx: Context, guild: Guild, _is_new: bool) {
@@ -233,12 +228,9 @@ fn main() {
             })
             .help(&HELP)
             .group(&GENERAL_GROUP)
-            .group(&POINTS_GROUP)
             .group(&OWNER_GROUP)
             .group(&MODERATION_GROUP)
-            .group(&QOTD_GROUP)
             .group(&SETTINGS_GROUP)
-            .group(&LEVELING_GROUP)
             .on_dispatch_error(|context, msg, error| {
                 match error {
                     NotEnoughArguments { min, given } => {
