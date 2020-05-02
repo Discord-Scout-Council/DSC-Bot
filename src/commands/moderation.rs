@@ -446,10 +446,13 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     db_map.insert("Vigil", vigil_db);
 
 
-    let mut verified_roles = String::new();
+    let mut verified_roles = String::from("‎"); // Contains a unicode "blank space" to appease JSON
     for (key, db) in db_map {
         if let Some(i) = db.get::<i32>(&target_id.as_u64().to_string()) {
             verified_roles.push_str(&format!("{}\n", key));
+            debug!("Found verified role {}", key);
+        } else {
+            debug!("Did not find verified role {}", key);
         }
     }
 
@@ -480,7 +483,7 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         None => target_user.default_avatar_url(),
     };
 
-    msg.channel_id.send_message(&ctx, |m| {
+    if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
             e.title("User Info");
             if is_banned {
@@ -520,7 +523,10 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             e
         });
         m
-    })?;
+    }) {
+        error!("Error sending `runuser` output: {:?}", err);
+        return Err(CommandError(err.to_string()));
+    }
 
     Ok(())
 }
