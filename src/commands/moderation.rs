@@ -406,7 +406,13 @@ pub fn getcase(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let db = get_discord_banlist();
     let age_db = get_global_pickle_database("age.db");
-    let target_id = args.parse::<UserId>().unwrap();
+    let target_id = match args.parse::<UserId>() {
+        Ok(id) => id,
+        Err(err) =>{
+            error!("Error parsing userid for `runuser` command in {}: {:?}", &msg.guild_id.unwrap(), err);
+            return Err(CommandError(err.to_string()));
+        }
+    };
     let age_group = age_db.get::<String>(&target_id.as_u64().to_string());
     let mut stmt = db
         .prepare("SELECT reason,guild_id,id FROM dbans WHERE userid = (?)")
