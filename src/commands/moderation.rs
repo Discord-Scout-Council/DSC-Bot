@@ -405,7 +405,9 @@ pub fn getcase(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[only_in(guilds)]
 pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let db = get_discord_banlist();
+    let age_db = get_global_pickle_database("age.db");
     let target_id = args.parse::<UserId>().unwrap();
+    let age_group = age_db.get::<String>(&target_id.as_u64().to_string());
     let mut stmt = db
         .prepare("SELECT reason,guild_id,id FROM dbans WHERE userid = (?)")
         .unwrap();
@@ -429,6 +431,15 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let joined_discord_datetime = target_id.created_at();
     let joined_discord_date = joined_discord_datetime.date().naive_utc();
     let joined_discord_time = joined_discord_datetime.time();
+
+    let mut age_line = match age_group {
+        Some(s) => s,
+        None => String::from("Unknown Age"),
+    };
+
+    if age_line != String::from("Unknown Age") {
+        age_line = format!("{} 18", age_line)
+    }
 
     let user_avatar = match target_user.avatar_url() {
         Some(url) => url,
@@ -463,6 +474,7 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                     format!("{}, {}Z", joined_discord_date, joined_discord_time),
                     true,
                 ),
+                ("Age Group", age_line, true),
             ]);
 
             e.footer(|f| {

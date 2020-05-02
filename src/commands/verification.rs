@@ -12,7 +12,7 @@ pub fn age(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let mut age_db = get_global_pickle_database("age.db");
     let overunder = args.current().unwrap();
     if overunder == "over" {
-        match age_db.set(&msg.author.id.as_u64().to_string(), &"over") {
+        match age_db.set(&msg.author.id.as_u64().to_string(), &"Over") {
             Err(err) => {
                 error!("Error setting {}'s age: {:?}", &msg.author.name, err);
                 return Err(CommandError(err.to_string()));
@@ -20,7 +20,7 @@ pub fn age(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             _ => ()
         }
     } else if overunder == "under" {
-        match age_db.set(&msg.author.id.as_u64().to_string(), &"under") {
+        match age_db.set(&msg.author.id.as_u64().to_string(), &"Under") {
             Err(err) => {
                 error!("Error setting {}'s age: {:?}", &msg.author.name, err);
                 return Err(CommandError(err.to_string()));
