@@ -206,12 +206,16 @@ impl EventHandler for Handler {
         let guild = guild_arc.read();
 
         let settings = data::get_pickle_database(&guild_id.as_u64(), "settings.db");
-        let alert_channel: ChannelId = match settings.get::<u64>("modlogs_channel") {
-            Some(channel) => channel.into(),
-            None => {
-                guild.system_channel_id.unwrap()
-            }
+        let alert_channel: ChannelId;
+        let temp_channel = match settings.get::<u64>("modlogs_channel") {
+            Some(channel) => channel,
+            None => 0u64,
         };
+        if temp_channel == 0 {
+                alert_channel = guild.system_channel_id.unwrap();
+        } else {
+            alert_channel = temp_channel.into();
+        }
         if is_banned {
             let user = &ctx.http.get_user(*new_member.user_id().as_u64()).unwrap();
             alert_channel.send_message(&ctx, |m| {
