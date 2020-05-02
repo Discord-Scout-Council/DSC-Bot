@@ -187,7 +187,7 @@ impl EventHandler for Handler {
             );
         }
         let mut cache = data::get_pickle_database(&guild.id.as_u64(), "settings.db");
-        if let None = cache.get::<String>("qotd_channel") {
+        if let None = cache.get::<String>("modlogs_channel") {
             data::init_guild_settings(&mut cache);
         }
     }
