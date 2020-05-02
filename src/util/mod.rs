@@ -4,3 +4,4 @@
  */
 pub mod data;
 pub mod moderation;
+pub mod verification;

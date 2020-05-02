@@ -15,7 +15,7 @@ use serenity::{
         HelpOptions, StandardFramework,
     },
     model::{
-        channel::{Message},
+        channel::{Message, Reaction},
         gateway::{Activity, Ready},
         guild::{Guild,Member},
         id::{GuildId, UserId, ChannelId},
@@ -76,8 +76,18 @@ impl EventHandler for Handler {
         ctx.set_presence(Some(activity), OnlineStatus::DoNotDisturb);
     }
 
+    fn reaction_add(&self, ctx: Context, add_reaction: Reaction) {
+        match verification::handle_verification_reaction(&ctx, add_reaction) {
+            Err(e) => error!("Error verifying user. {}", e),
+            _ => (),
+        }
+    }
+
     //* Points
     fn message(&self, ctx: Context, msg: Message) {
+        if msg.is_private() {
+            verification::handle_verification_file(&ctx, &msg);
+        }
         //* Banned Words
         debug!("Checking banned words list");
         let guild = match &msg.guild_id {
