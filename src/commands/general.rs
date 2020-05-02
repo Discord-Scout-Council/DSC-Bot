@@ -42,7 +42,7 @@ pub fn about(ctx: &mut Context, msg: &Message) -> CommandResult {
 pub fn serverinfo(ctx: &mut Context, msg: &Message) -> CommandResult {
     let guild_arc = msg.guild_id.unwrap().to_guild_cached(&ctx.cache).unwrap();
     let guild = guild_arc.read();
-    let mut member_count = guild.member_count;
+    let member_count = guild.member_count;
 
     let mut guild_owner = guild.owner_id.to_user(&ctx).unwrap().name;
 
@@ -61,7 +61,7 @@ pub fn serverinfo(ctx: &mut Context, msg: &Message) -> CommandResult {
             .to_string(),
     );
 
-    msg.channel_id.send_message(&ctx.http, |m| {
+    match msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
             e.title(&guild.name);
 
@@ -74,7 +74,10 @@ pub fn serverinfo(ctx: &mut Context, msg: &Message) -> CommandResult {
         });
 
         m
-    });
+    }) {
+        Err(err) => error!("Error sending server count: {:?}", err),
+        Ok(_msg) => ()
+    }
 
     Ok(())
 }
@@ -83,7 +86,7 @@ pub fn serverinfo(ctx: &mut Context, msg: &Message) -> CommandResult {
 #[description = "Sends a suggestion to the bot developers"]
 #[usage("<Suggestion>")]
 #[min_args(1)]
-pub fn botsuggest(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub fn botsuggest(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let suggest_channel = ctx.cache.read().guild_channel(668964814684422184).unwrap();
     let suggestion = args.rest();
     suggest_channel.read().send_message(&ctx, |m| {
