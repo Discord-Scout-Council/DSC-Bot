@@ -8,15 +8,18 @@ use serenity::{
     framework::standard::{
         help_commands,
         macros::{group, help},
-        Args, CommandGroup, CommandResult, HelpOptions, StandardFramework,
-        Reason,
-        DispatchError::{NotEnoughArguments,TooManyArguments, CheckFailed, OnlyForGuilds, OnlyForOwners, LackingPermissions}
+        Args, CommandGroup, CommandResult,
+        DispatchError::{
+            CheckFailed, LackingPermissions, NotEnoughArguments, OnlyForGuilds, OnlyForOwners,
+            TooManyArguments,
+        },
+        HelpOptions, Reason, StandardFramework,
     },
     model::{
         channel::{Message, Reaction, ReactionType},
         gateway::{Activity, ActivityType, Ready},
         guild::Guild,
-        id::{UserId, GuildId},
+        id::{GuildId, UserId},
         user::{OnlineStatus, User},
     },
     prelude::*,
@@ -32,9 +35,7 @@ use log::{debug, error, info};
 mod checks;
 mod commands;
 mod util;
-use crate::commands::{
-    general::*, moderation::*, owner::*, settings::*,
-};
+use crate::commands::{general::*, moderation::*, owner::*, settings::*};
 use util::*;
 
 mod prelude;
@@ -43,15 +44,21 @@ mod prelude;
 #[commands(ping, about, serverinfo, botsuggest)]
 struct General;
 
-
 #[group]
 #[commands(restart, initcache)]
 struct Owner;
 
 #[group]
-#[commands(strike, strikelog, wordfilter, clearstrikes, modstrike, getcase, runuser)]
+#[commands(
+    strike,
+    strikelog,
+    wordfilter,
+    clearstrikes,
+    modstrike,
+    getcase,
+    runuser
+)]
 struct Moderation;
-
 
 #[group]
 #[commands(serversettings, resetsettings)]
@@ -116,7 +123,25 @@ impl EventHandler for Handler {
 
     fn guild_ban_addition(&self, ctx: Context, guild_id: GuildId, banned_user: User) {
         let db = data::get_discord_banlist();
-        if let error = db.execute("INSERT INTO dbans (userid,reason,guild_id,is_withdrawn) VALUES (?1,?2,?3,0)", params![banned_user.id.as_u64().to_string(),"No Reason Provided", guild_id.as_u64().to_string()]) {
+        let bans = guild_id.bans(&ctx).unwrap();
+
+        let mut reason = &String::from("No reason provided");
+        for (i, b) in bans.iter().enumerate() {
+            if b.user.id.as_u64() == banned_user.id.as_u64() {
+                match &b.reason {
+                    Some(r) => reason = r,
+                    None => (),
+                }
+            }
+        }
+        if let error = db.execute(
+            "INSERT INTO dbans (userid,reason,guild_id,is_withdrawn) VALUES (?1,?2,?3,0)",
+            params![
+                banned_user.id.as_u64().to_string(),
+                &reason,
+                guild_id.as_u64().to_string()
+            ],
+        ) {
             error!("Encountered an error adding a ban for {}", banned_user.name);
         };
         let blacklist_channel = ctx.http.get_channel(646545388576178178).unwrap();
@@ -128,8 +153,12 @@ impl EventHandler for Handler {
                 e.title("New Ban Detected");
                 e.fields(vec![
                     ("Server", &guild.name, false),
-                    ("Name", &format!("{}#{}", &banned_user.name, &banned_user.discriminator), false),
-                    ("ID", &banned_user.id.as_u64().to_string(), false)
+                    (
+                        "Name",
+                        &format!("{}#{}", &banned_user.name, &banned_user.discriminator),
+                        false,
+                    ),
+                    ("ID", &banned_user.id.as_u64().to_string(), false),
                 ]);
                 if let Some(url) = &banned_user.avatar_url() {
                     e.thumbnail(url);
@@ -138,10 +167,11 @@ impl EventHandler for Handler {
             });
             m
         }) {
-            error!("Encountered an error trying to notify DSC about a new ban for {}", banned_user.name);
+            error!(
+                "Encountered an error trying to notify DSC about a new ban for {}",
+                banned_user.name
+            );
         }
-
-
     }
 
     fn guild_create(&self, ctx: Context, guild: Guild, _is_new: bool) {
@@ -208,30 +238,28 @@ fn main() {
             .group(&OWNER_GROUP)
             .group(&MODERATION_GROUP)
             .group(&SETTINGS_GROUP)
-            .on_dispatch_error(|context, msg, error| {
-                match error {
-                    NotEnoughArguments { min, given } => {
-                        let mut s = format!("Need {} arguments, only got {}.", min, given);
-                        s.push_str(&" Try using `help <command>` to get usage.");
+            .on_dispatch_error(|context, msg, error| match error {
+                NotEnoughArguments { min, given } => {
+                    let mut s = format!("Need {} arguments, only got {}.", min, given);
+                    s.push_str(&" Try using `help <command>` to get usage.");
 
-                        msg.channel_id.say(&context, &s);
-                    },
-                    TooManyArguments { max, given} => {
-                        let mut s = format!("Too many arguments. Expected {}, got {}.", max, given);
-                        s.push_str(" Try using `help <command>` to get usage.");
-
-                        msg.channel_id.say(&context, &s);
-                    },
-                    CheckFailed ( stri, reason) => {
-                        info!("{}", stri);
-                        info!("{} failed to pass check {}", &msg.author.name, stri);
-
-                        msg.channel_id.say(&context, "You do not have permission to use this command!");
-
-                    }
-                    _ => error!("Unhandled dispatch error.")
+                    msg.channel_id.say(&context, &s);
                 }
-            })
+                TooManyArguments { max, given } => {
+                    let mut s = format!("Too many arguments. Expected {}, got {}.", max, given);
+                    s.push_str(" Try using `help <command>` to get usage.");
+
+                    msg.channel_id.say(&context, &s);
+                }
+                CheckFailed(stri, reason) => {
+                    info!("{}", stri);
+                    info!("{} failed to pass check {}", &msg.author.name, stri);
+
+                    msg.channel_id
+                        .say(&context, "You do not have permission to use this command!");
+                }
+                _ => error!("Unhandled dispatch error."),
+            }),
     );
 
     info!("Starting client");
