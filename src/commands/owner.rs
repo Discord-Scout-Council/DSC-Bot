@@ -3,23 +3,24 @@
  *   All rights reserved.
  */
 
-use crate::util::data::{get_pickle_database, init_guild_settings};
-use pickledb::{PickleDb, PickleDbDumpPolicy};
-use serenity::framework::standard::{macros::command, CommandResult, StandardFramework};
-use serenity::{model::channel::Message, model::guild::Member, prelude::*};
+use crate::util::data::{get_pickle_database};
+use serenity::framework::standard::{macros::command, CommandResult};
+use serenity::{model::channel::Message, prelude::*};
 
-use log::warn;
+use crate::prelude::*;
 
 #[command]
 #[description = "Restarts the bot"]
 #[owners_only]
 pub fn restart(ctx: &mut Context, msg: &Message) -> CommandResult {
-    msg.channel_id
-        .say(&ctx.http, "Restarting bot, and applying new changes");
+    match msg.channel_id
+        .say(&ctx.http, "Restarting bot, and applying new changes") {
+            Err(err) => error!("Error sending restart response: {:?}", err),
+            Ok(_msg) => ()
+        }
     warn!("{} is restarting the bot!", &msg.author.name);
     ctx.shard.shutdown_clean();
     std::process::exit(0);
-    Ok(())
 }
 
 #[command]
@@ -27,8 +28,10 @@ pub fn restart(ctx: &mut Context, msg: &Message) -> CommandResult {
 #[owners_only]
 pub fn initcache(ctx: &mut Context, msg: &Message) -> CommandResult {
     let mut guild_cache = get_pickle_database(msg.guild_id.unwrap().as_u64(), &"cache.db");
-    guild_cache.set("current_qotd", &0);
-    msg.channel_id.send_message(&ctx.http, |m| {
+    if let Err(err) = guild_cache.set("current_qotd", &0) {
+        error!("Error setting current_qotd in {} cache: {:?}", msg.guild_id.unwrap().as_u64(), err);
+    }
+    if let Err(err) = msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
             e.title("Campmaster Constantine");
             e.description("Successfully initialized the Guild Cache");
@@ -43,7 +46,9 @@ pub fn initcache(ctx: &mut Context, msg: &Message) -> CommandResult {
         });
 
         m
-    })?;
+    }) {
+        error!("Error responding to {} cache init: {:?}", msg.guild_id.unwrap().as_u64(), err);
+    }
 
     warn!(
         "{} just initialized the guild cache for guild {}",
