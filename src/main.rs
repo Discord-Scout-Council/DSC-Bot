@@ -77,7 +77,13 @@ impl EventHandler for Handler {
     fn message(&self, ctx: Context, msg: Message) {
         //* Banned Words
         debug!("Checking banned words list");
-        let guild = &msg.guild_id.unwrap();
+        let guild = match &msg.guild_id {
+            Some(id) => id,
+            None => {
+                debug!("Could not find guildid for private message");
+                return;
+            }
+        };
         if util::moderation::contains_banned_word(&msg.content, &guild.as_u64()) {
             msg.channel_id
                 .send_message(&ctx.http, |m| {
