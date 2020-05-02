@@ -3,7 +3,7 @@
  *   All rights reserved.
  */
 
-use log::{error, debug, warn};
+use log::{error, debug, info, warn};
 use rusqlite::{params, Connection, Result, RowIndex};
 use serenity::framework::standard::{macros::command, Args, CommandResult, StandardFramework};
 use serenity::model::id::UserId;
@@ -531,6 +531,9 @@ pub fn syncbans(ctx: &mut Context, msg: &Message) -> CommandResult {
         });
         m
     })?;
+
+    let guild = &ctx.http.get_guild(*msg.guild_id.unwrap().as_u64()).unwrap();
+    info!("Synced bans from {}", &guild.name);
 
     debug!("Command finished");
     Ok(())
