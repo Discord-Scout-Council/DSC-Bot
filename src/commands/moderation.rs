@@ -10,6 +10,8 @@ use serenity::model::id::UserId;
 use serenity::utils::Colour;
 use serenity::{model::channel::Message, model::user::User, prelude::*};
 
+use std::collections::HashMap;
+
 use crate::checks::*;
 
 use crate::util::{
@@ -425,6 +427,32 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         }
     }
 
+    // Verified Roles
+    let eagle_db = get_global_pickle_database("eagle.db");
+    let summit_db = get_global_pickle_database("summit.db");
+    let cstaff_db = get_global_pickle_database("campstaff.db");
+    let ypt_db = get_global_pickle_database("ypt.db");
+    let ordeal_db = get_global_pickle_database("ordeal.db");
+    let brotherhood_db = get_global_pickle_database("brotherhood.db");
+    let vigil_db = get_global_pickle_database("vigil.db");
+    let mut db_map: HashMap<&str, pickledb::PickleDb> = HashMap::new();
+
+    db_map.insert("Eagle", eagle_db);
+    db_map.insert("Summit", summit_db);
+    db_map.insert("Camp Staff", cstaff_db);
+    db_map.insert("YPT", ypt_db);
+    db_map.insert("Ordeal", ordeal_db);
+    db_map.insert("Brotherhood", brotherhood_db);
+    db_map.insert("Vigil", vigil_db);
+
+
+    let mut verified_roles = String::new();
+    for (key, db) in db_map {
+        if let Some(i) = db.get::<i32>(&target_id.as_u64().to_string()) {
+            verified_roles.push_str(&format!("{}\n", key));
+        }
+    }
+
     let target_user = &ctx.http.get_user(*target_id.as_u64())?;
     let guild = &ctx.http.get_guild(*msg.guild_id.unwrap().as_u64())?;
     let user_name = &target_user.name;
@@ -481,6 +509,7 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                     true,
                 ),
                 ("Age Group", age_line, true),
+                ("Verified Roles", verified_roles, true),
             ]);
 
             e.footer(|f| {
