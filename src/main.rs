@@ -2,22 +2,20 @@
  *   Copyright (c) 2020 Owen Salter <owen@devosmium.xyz>
  *   All rights reserved.
  */
-
-use rand::Rng;
 use serenity::{
     framework::standard::{
         help_commands,
         macros::{group, help},
         Args, CommandGroup, CommandResult,
         DispatchError::{
-            CheckFailed, LackingPermissions, NotEnoughArguments, OnlyForGuilds, OnlyForOwners,
+            CheckFailed, NotEnoughArguments,
             TooManyArguments,
         },
-        HelpOptions, Reason, StandardFramework,
+        HelpOptions, StandardFramework,
     },
     model::{
-        channel::{Message, Reaction, ReactionType},
-        gateway::{Activity, ActivityType, Ready},
+        channel::{Message},
+        gateway::{Activity, Ready},
         guild::{Guild,Member},
         id::{GuildId, UserId, ChannelId},
         user::{OnlineStatus, User},
@@ -27,8 +25,7 @@ use serenity::{
 };
 use std::{collections::HashSet, env};
 
-use pickledb::*;
-use rusqlite::{params, Connection, Result};
+use rusqlite::{params};
 
 use log::{debug, error, info};
 
@@ -67,7 +64,7 @@ struct Settings;
 
 struct Handler;
 impl EventHandler for Handler {
-    fn ready(&self, ctx: Context, ready: Ready) {
+    fn ready(&self, ctx: Context, _ready: Ready) {
         info!("Logged in to Discord successfully");
         let activity = Activity::playing("with bans");
         ctx.set_presence(Some(activity), OnlineStatus::DoNotDisturb);
@@ -122,10 +119,6 @@ impl EventHandler for Handler {
             moderation::log_mod_action(action, &mut ctx.clone());
             msg.delete(&ctx).unwrap();
         }
-        let mut db = util::data::get_pickle_database(
-            msg.guild_id.unwrap().as_u64(),
-            &String::from("points.db"),
-        );
     }
 
     fn guild_ban_addition(&self, ctx: Context, guild_id: GuildId, banned_user: User) {
@@ -133,7 +126,7 @@ impl EventHandler for Handler {
         let bans = guild_id.bans(&ctx).unwrap();
 
         let mut reason = &String::from("No reason provided");
-        for (i, b) in bans.iter().enumerate() {
+        for (_i, b) in bans.iter().enumerate() {
             if b.user.id.as_u64() == banned_user.id.as_u64() {
                 match &b.reason {
                     Some(r) => reason = r,
@@ -141,7 +134,7 @@ impl EventHandler for Handler {
                 }
             }
         }
-        if let error = db.execute(
+        if let Err(err) = db.execute(
             "INSERT INTO dbans (userid,reason,guild_id,is_withdrawn) VALUES (?1,?2,?3,0)",
             params![
                 banned_user.id.as_u64().to_string(),
@@ -149,13 +142,13 @@ impl EventHandler for Handler {
                 guild_id.as_u64().to_string()
             ],
         ) {
-            error!("Encountered an error adding a ban for {}", banned_user.name);
+            error!("Encountered an error adding a ban for {}: {:?}", banned_user.name, err);
         };
         let blacklist_channel = ctx.http.get_channel(646545388576178178).unwrap();
         let blacklist_channel_id = blacklist_channel.id();
         let guild = ctx.http.get_guild(guild_id.as_u64().clone()).unwrap();
 
-        if let Error = blacklist_channel_id.send_message(&ctx, |m| {
+        if let Err(err) = blacklist_channel_id.send_message(&ctx, |m| {
             m.embed(|e| {
                 e.title("New Ban Detected");
                 e.fields(vec![
@@ -175,13 +168,13 @@ impl EventHandler for Handler {
             m
         }) {
             error!(
-                "Encountered an error trying to notify DSC about a new ban for {}",
-                banned_user.name
+                "Encountered an error trying to notify DSC about a new ban for {}: {:?}",
+                banned_user.name, err
             );
         }
     }
 
-    fn guild_create(&self, ctx: Context, guild: Guild, _is_new: bool) {
+    fn guild_create(&self, _ctx: Context, guild: Guild, _is_new: bool) {
         if _is_new {
             info!(
                 "Joined new guild {}. Intializing guild settings.",
@@ -225,7 +218,7 @@ impl EventHandler for Handler {
         }
         if is_banned {
             let user = &ctx.http.get_user(*new_member.user_id().as_u64()).unwrap();
-            alert_channel.send_message(&ctx, |m| {
+            match alert_channel.send_message(&ctx, |m| {
                 
                 m.embed(|e| {
                     e.title("Alert!");
@@ -241,7 +234,12 @@ impl EventHandler for Handler {
                     e
                 });
                 m
-            }).unwrap();
+            }) {
+                Err(err) => {
+                    error!("Encountered an error warning {} about {}#{}: {:?}", &guild.name, user.name,user.discriminator, err);
+                },
+                _ => (),
+            }
         }
 
     }
@@ -265,7 +263,7 @@ fn main() {
 
     let token = match env::var("DISCORD_TOKEN") {
         Ok(t) => t,
-        Error => {
+        Err(_err) => {
             error!("Could not find discord token in environment");
             String::from("")
         }
@@ -302,20 +300,29 @@ fn main() {
                     let mut s = format!("Need {} arguments, only got {}.", min, given);
                     s.push_str(&" Try using `help <command>` to get usage.");
 
-                    msg.channel_id.say(&context, &s);
+                    match msg.channel_id.say(&context, &s) {
+                        Err(err) => error!("Error responding to invalid arguments: {:?}", err),
+                        Ok(_msg) => ()
+                    }
                 }
                 TooManyArguments { max, given } => {
                     let mut s = format!("Too many arguments. Expected {}, got {}.", max, given);
                     s.push_str(" Try using `help <command>` to get usage.");
 
-                    msg.channel_id.say(&context, &s);
+                    match msg.channel_id.say(&context, &s) {
+                        Err(err) => error!("Error responding to invalid arguments: {:?}", err),
+                        Ok(_msg) => ()
+                    }
                 }
-                CheckFailed(stri, reason) => {
+                CheckFailed(stri, _reason) => {
                     info!("{}", stri);
                     info!("{} failed to pass check {}", &msg.author.name, stri);
 
-                    msg.channel_id
-                        .say(&context, "You do not have permission to use this command!");
+                    match msg.channel_id
+                        .say(&context, "You do not have permission to use this command!") {
+                            Err(err) => error!("Error responding to failed check: {:?}", err),
+                            Ok(_msg) => ()
+                        }
                 }
                 _ => error!("Unhandled dispatch error."),
             }),
