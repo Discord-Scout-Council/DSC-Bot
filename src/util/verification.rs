@@ -52,6 +52,10 @@ enum VerifyType {
  }
 
  pub fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Result<(), String>{
+     let current_info = &ctx.http.get_current_application_info().unwrap();
+    if react.user_id.as_u64() == current_info.id.as_u64() {
+        return Err(String::from("Bot reaction"));
+    } 
     let message_id = react.message_id;
     let http_cache = &ctx.http;
     let message = match http_cache.get_message(684577265425973285, *message_id.as_u64()) {
@@ -73,9 +77,25 @@ enum VerifyType {
         None => return Err(String::from("Invalid verify type")),
     };
 
+    let mut verify_db = match verify_type {
+        VerifyType::Eagle => get_global_pickle_database("eagle.db"),
+        VerifyType::SummitSilver => get_global_pickle_database("summit.db"),
+        VerifyType::CampStaff => get_global_pickle_database("campstaff.db"),
+        VerifyType::Ypt => get_global_pickle_database("ypt.db"),
+        VerifyType::Ordeal => get_global_pickle_database("ordeal.db"),
+        VerifyType::Brotherhood => get_global_pickle_database("brotherhood.db"),
+        VerifyType::Vigil => get_global_pickle_database("vigil.db"),
+    };
     let message_content = &message.content;
     let user_id = message_content.split("\n").clone();
     let split_contents = user_id.collect::<Vec<&str>>();
+    let user_id_str: &str = split_contents.get(0).unwrap();
+    if let Err(err) = verify_db.set(&user_id_str, &1) {
+        return Err(err.to_string());
+    }
+
+
+
     let user = match http_cache.get_user(split_contents.get(0).unwrap().parse::<u64>().unwrap()) {
         Err(err) => return Err(err.to_string()),
         Ok(u) => u
