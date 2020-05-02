@@ -3,5 +3,4 @@
  *   All rights reserved.
  */
 pub mod data;
-pub mod leveling;
 pub mod moderation;
