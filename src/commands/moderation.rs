@@ -4,8 +4,8 @@
  */
 
 use log::{error, debug, info, warn};
-use rusqlite::{params, Connection, Result, RowIndex};
-use serenity::framework::standard::{macros::command, Args, CommandResult, StandardFramework};
+use rusqlite::{params};
+use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::id::UserId;
 use serenity::utils::Colour;
 use serenity::{model::channel::Message, model::user::User, prelude::*};
@@ -80,7 +80,7 @@ pub fn strike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 #[only_in(guilds)]
 #[min_args(1)]
 #[checks(Moderator)]
-pub fn strikelog(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub fn strikelog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let strike_conn = get_strike_database(&msg.guild_id.unwrap().as_u64());
     let target_user = args.parse::<UserId>().unwrap();
 
@@ -107,11 +107,11 @@ pub fn strikelog(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
 
     let mut result_vec: Vec<(String, String, bool)> = Vec::new();
 
-    for (i, r) in strikes.iter().enumerate() {
+    for (_i, r) in strikes.iter().enumerate() {
         result_vec.push((format!("Case #{}", r.case_id), r.reason.clone(), false));
     }
 
-    msg.channel_id
+    match msg.channel_id
         .send_message(&ctx.http, |m| {
             m.embed(|e| {
                 let mut title = String::from("Strikes for ");
@@ -131,8 +131,10 @@ pub fn strikelog(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
             });
 
             m
-        })
-        .unwrap();
+        }) {
+            Err(err) => error!("Error sending strike log: {:?}", err),
+            Ok(_msg) => ()
+        }
 
     Ok(())
 }
@@ -140,7 +142,7 @@ pub fn strikelog(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
 #[command]
 #[description = "Manages the bad words filter"]
 #[sub_commands(add)]
-pub fn wordfilter(ctx: &mut Context, msg: &Message) -> CommandResult {
+pub fn wordfilter(_ctx: &mut Context, _msg: &Message) -> CommandResult {
     Ok(())
 }
 
@@ -148,12 +150,12 @@ pub fn wordfilter(ctx: &mut Context, msg: &Message) -> CommandResult {
 #[description = "Adds a word to the bad words list"]
 #[checks(Moderator)]
 #[sub_commands(global)]
-pub fn add(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     msg.reply(&ctx, "Called word management")?;
     let guild = &msg.guild_id.unwrap();
     let mut db = get_pickle_database(guild.as_u64(), "banned_words.db");
     match db.get::<i32>(&args.rest()) {
-        Some(i) => {
+        Some(_i) => {
             msg.channel_id.send_message(&ctx, |m| {
                 m.embed(|e| {
                     e.title("Word Filter");
@@ -167,8 +169,8 @@ pub fn add(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             })?;
         }
         None => {
-            if let Error = db.set(&args.rest(), &1) {
-                error!("Failed to add local banned word");
+            if let Err(err) = db.set(&args.rest(), &1) {
+                error!("Failed to add local banned word: {:?}", err);
             };
             msg.channel_id.send_message(&ctx, |m| {
                 m.embed(|e| {
@@ -194,7 +196,7 @@ pub fn add(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 #[command]
 #[description = "Adds a word to the global list"]
 #[owners_only]
-pub fn global(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub fn global(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let mut db = get_global_pickle_database("banned_words.db");
 
     db.set(args.rest(), &1)?;
@@ -230,7 +232,7 @@ pub fn global(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 #[usage("<User>")]
 #[checks(Moderator)]
 #[only_in(guilds)]
-pub fn clearstrikes(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub fn clearstrikes(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let strikes = get_strike_database(&msg.guild_id.unwrap().as_u64());
     let target = args.parse::<UserId>().unwrap();
     strikes.execute(
@@ -247,7 +249,7 @@ pub fn clearstrikes(ctx: &mut Context, msg: &Message, mut args: Args) -> Command
     };
     log_mod_action(action, ctx);
 
-    msg.channel_id.send_message(&ctx, |m| {
+    match msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
             e.title("Moderation Subsystem");
             e.description(format!(
@@ -264,7 +266,10 @@ pub fn clearstrikes(ctx: &mut Context, msg: &Message, mut args: Args) -> Command
         });
 
         m
-    })?;
+    }) {
+        Err(err) => error!("Error sending clearstrike response: {:?}", err),
+        Ok(_msg) => ()
+    }
 
     Ok(())
 }
@@ -346,7 +351,7 @@ pub fn modstrike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
 #[num_args(1)]
 #[checks(Moderator)]
 #[only_in(guilds)]
-pub fn getcase(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub fn getcase(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let strikes = get_strike_database(&msg.guild_id.unwrap().as_u64());
     let mut stmt =
         strikes.prepare("SELECT userid,moderator,reason,is_withdrawn FROM strikes WHERE id = ?")?;
@@ -407,7 +412,7 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let mut ban_result = stmt.query(params![&target_id.as_u64().to_string()])?;
     let mut is_banned = false;
     if let Ok(o) = ban_result.next() {
-        if let Some(r) = o {
+        if let Some(_r) = o {
             is_banned = true;
         }
     }
@@ -482,7 +487,7 @@ pub fn syncbans(ctx: &mut Context, msg: &Message) -> CommandResult {
     let db = get_discord_banlist();
     let mut stmt = db.prepare("SELECT userid,reason FROM dbans WHERE guild_id = ?1")?;
     debug!("Getting current bans");
-    let mut res = stmt.query_map(params![&msg.guild_id.unwrap().as_u64().to_string()], |row| {
+    let res = stmt.query_map(params![&msg.guild_id.unwrap().as_u64().to_string()], |row| {
         Ok(DscBan {
             userid: row.get(0).unwrap(),
             reason: row.get(1).unwrap(),
