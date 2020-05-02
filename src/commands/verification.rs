@@ -71,5 +71,7 @@ pub fn age(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         _ => (),
     }
 
+    info!("Set age for {} to {} 18", &msg.author.name, overunder);
+
     Ok(())
 }

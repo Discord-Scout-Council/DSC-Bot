@@ -124,7 +124,7 @@ pub fn privacy(ctx: &mut Context, msg: &Message) -> CommandResult {
         m.embed(|e| {
             e.title("Privacy");
             e.description("The DSC bot collects the bare minimum data necessary to function. This data is only stored when necessary to carry out the primary functions of the bot, like notifying other servers of bans or advisories. When you are banned from a server or an advisory is put out about you, the bot collects and stores your UserID, the server the action was sent from, and the reason behind it (if any). Additionally, the bot may store your age, and any verified BSA awards or advancements that you choose to store. If you wish to know what information the bot is storing or to remove your information, please contact DSC.");
-            e.field("Information Contact", "Muirrum#2318", true);
+            e.field("Information Contact", "[support@devosmium.xyz](mailto:support@devosmium.xyz)", true);
             e.footer(|f| {
                 f.text("DSC Bot | Powered by Rusty Development");
                 f
