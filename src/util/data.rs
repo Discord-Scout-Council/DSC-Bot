@@ -69,13 +69,17 @@ pub fn get_strike_database(guild_id: &u64) -> Connection {
 
 pub fn get_discord_banlist() -> Connection {
     let conn = Connection::open("data/dbans.db").unwrap();
-    conn.execute("CREATE TABLE IF NOT EXISTS dbans (
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS dbans (
         id INTEGER PRIMARY KEY,
         userid TEXT NOT NULL,
         reason TEXT NOT NULL,
         guild_id TEXT NOT NULL,
         is_withdrawn INTEGER NOT NULL
-    )", params![]).unwrap();
+    )",
+        params![],
+    )
+    .unwrap();
 
     conn
 }

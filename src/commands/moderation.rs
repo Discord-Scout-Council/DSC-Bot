@@ -13,7 +13,9 @@ use serenity::{model::channel::Message, model::user::User, prelude::*};
 use crate::checks::*;
 
 use crate::util::{
-    data::{get_global_pickle_database, get_pickle_database, get_strike_database, get_discord_banlist},
+    data::{
+        get_discord_banlist, get_global_pickle_database, get_pickle_database, get_strike_database,
+    },
     moderation::*,
 };
 
@@ -386,7 +388,6 @@ pub fn getcase(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
     Ok(())
 }
 
-
 #[command]
 #[usage("<@Mention>")]
 #[description = "Checks a user against the banlist and returns other information"]
@@ -397,7 +398,7 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let target_id = args.parse::<UserId>().unwrap();
     let mut stmt = db
         .prepare("SELECT reason,guild_id,id FROM dbans WHERE userid = (?)")
-        .unwrap();    
+        .unwrap();
     let mut ban_result = stmt.query(params![&target_id.as_u64().to_string()])?;
     let mut is_banned = false;
     if let Ok(o) = ban_result.next() {
@@ -421,7 +422,7 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 
     let user_avatar = match target_user.avatar_url() {
         Some(url) => url,
-        None => target_user.default_avatar_url()
+        None => target_user.default_avatar_url(),
     };
 
     msg.channel_id.send_message(&ctx, |m| {
@@ -436,10 +437,22 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             }
             e.thumbnail(user_avatar);
             e.fields(vec![
-                ("Name", format!("{}#{}", user_name, target_user.discriminator), true),
+                (
+                    "Name",
+                    format!("{}#{}", user_name, target_user.discriminator),
+                    true,
+                ),
                 ("ID", user_id.to_string(), true),
-                ("Joined Server", format!("{}, {}Z", joined_guild_date, joined_guild_time), true),
-                ("Joined Discord", format!("{}, {}Z", joined_discord_date, joined_discord_time), true)
+                (
+                    "Joined Server",
+                    format!("{}, {}Z", joined_guild_date, joined_guild_time),
+                    true,
+                ),
+                (
+                    "Joined Discord",
+                    format!("{}, {}Z", joined_discord_date, joined_discord_time),
+                    true,
+                ),
             ]);
 
             e.footer(|f| {
@@ -447,14 +460,10 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                 f
             });
 
-
             e
         });
         m
     })?;
-    
-
-
 
     Ok(())
 }
