@@ -58,7 +58,7 @@ pub fn handle_verification_file(ctx: &Context, msg: &Message) -> Result<(), Stri
 pub fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Result<(), String> {
     let current_info = &ctx.http.get_current_application_info().unwrap();
     if react.user_id.as_u64() == current_info.id.as_u64() {
-        return Err(String::from("Bot reaction"));
+        return Ok(());
     }
     let message_id = react.message_id;
     let http_cache = &ctx.http;
