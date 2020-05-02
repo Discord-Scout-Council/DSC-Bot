@@ -38,7 +38,7 @@ use util::*;
 mod prelude;
 
 #[group]
-#[commands(ping, about, serverinfo, botsuggest)]
+#[commands(ping, about, serverinfo, botsuggest, privacy)]
 struct General;
 
 #[group]

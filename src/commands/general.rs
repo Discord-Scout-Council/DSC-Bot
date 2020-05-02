@@ -116,3 +116,27 @@ pub fn botsuggest(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult
 
     Ok(())
 }
+
+#[command]
+#[description = "Describes what kind of data the bot collects, and what you can do to get your data removed."]
+pub fn privacy(ctx: &mut Context, msg: &Message) -> CommandResult {
+    match msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Privacy");
+            e.description("The DSC bot collects the bare minimum data necessary to function. This data is only stored when necessary to carry out the primary functions of the bot, like notifying other servers of bans or advisories. When you are banned from a server or an advisory is put out about you, the bot collects and stores your UserID, the server the action was sent from, and the reason behind it (if any). Additionally, the bot may store your age, and any verified BSA awards or advancements that you choose to store. If you wish to know what information the bot is storing or to remove your information, please contact DSC.");
+            e.field("Information Contact", "Muirrum#2318", true);
+            e.footer(|f| {
+                f.text("DSC Bot | Powered by Rusty Development");
+                f
+            });
+
+            e
+        });
+        m
+    }) {
+        Err(err) => error!("Error sending privacy information: {:?}", err),
+        _ => ()
+    }
+
+    Ok(())
+}
