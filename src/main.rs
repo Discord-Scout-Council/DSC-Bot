@@ -65,7 +65,7 @@ struct Moderation;
 struct Settings;
 
 #[group]
-#[commands(age)]
+#[commands(age, verify)]
 struct Verification;
 
 struct Handler;
