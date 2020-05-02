@@ -32,7 +32,7 @@ use log::{debug, error, info};
 mod checks;
 mod commands;
 mod util;
-use crate::commands::{general::*, moderation::*, owner::*, settings::*};
+use crate::commands::{general::*, moderation::*, owner::*, settings::*, verification::*};
 use util::*;
 
 mod prelude;
@@ -62,6 +62,10 @@ struct Moderation;
 #[group]
 #[commands(serversettings, resetsettings)]
 struct Settings;
+
+#[group]
+#[commands(age)]
+struct Verification;
 
 struct Handler;
 impl EventHandler for Handler {
@@ -296,6 +300,7 @@ fn main() {
             .group(&OWNER_GROUP)
             .group(&MODERATION_GROUP)
             .group(&SETTINGS_GROUP)
+            .group(&VERIFICATION_GROUP)
             .on_dispatch_error(|context, msg, error| match error {
                 NotEnoughArguments { min, given } => {
                     let mut s = format!("Need {} arguments, only got {}.", min, given);
