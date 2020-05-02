@@ -15,6 +15,7 @@ use crate::prelude::*;
 #[description = "Manage server settings"]
 #[checks(Moderator)]
 #[sub_commands(get, set)]
+#[only_in(guilds)]
 pub fn serversettings(ctx: &mut Context, msg: &Message) -> CommandResult {
     if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {

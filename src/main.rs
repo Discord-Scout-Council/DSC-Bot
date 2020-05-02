@@ -10,6 +10,7 @@ use serenity::{
         DispatchError::{
             CheckFailed, NotEnoughArguments,
             TooManyArguments,
+            OnlyForGuilds
         },
         HelpOptions, StandardFramework,
     },
@@ -293,7 +294,6 @@ fn main() {
             .configure(|c| {
                 c.prefix(&env::var("DISCORD_PREFIX").unwrap())
                     .owners(owners)
-                    .allow_dm(false)
             })
             .help(&HELP)
             .group(&GENERAL_GROUP)
@@ -329,6 +329,13 @@ fn main() {
                             Err(err) => error!("Error responding to failed check: {:?}", err),
                             Ok(_msg) => ()
                         }
+                },
+                OnlyForGuilds => {
+                    info!("{} tried to use a guild-only command in DMs", &msg.author.name);
+                    match msg.channel_id.say(&context, "Please run this command in a Server!") {
+                        Err(err) => error!("Error sending invalid context msg to {}", &msg.author.name),
+                        _ => ()
+                    }
                 }
                 _ => error!("Unhandled dispatch error."),
             }),
