@@ -54,7 +54,8 @@ struct Owner;
     modstrike,
     getcase,
     runuser,
-    syncbans
+    syncbans,
+    advise
 )]
 struct Moderation;
 

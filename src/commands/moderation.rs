@@ -5,7 +5,7 @@
 
 use log::{error, debug, info, warn};
 use rusqlite::{params};
-use serenity::framework::standard::{macros::command, Args, CommandResult};
+use serenity::framework::standard::{macros::command, Args, CommandResult, CommandError};
 use serenity::model::id::UserId;
 use serenity::utils::Colour;
 use serenity::{model::channel::Message, model::user::User, prelude::*};
@@ -541,5 +541,98 @@ pub fn syncbans(ctx: &mut Context, msg: &Message) -> CommandResult {
     info!("Synced bans from {}", &guild.name);
 
     debug!("Command finished");
+    Ok(())
+}
+
+#[command]
+#[description = "Sends an advisory on a user to DSC"]
+#[only_in(guilds)]
+#[usage("<User> <Reason>")]
+#[min_args(2)]
+#[checks(Moderator)]
+pub fn advise(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    let target_user_id = match args.current().unwrap().parse::<UserId>() {
+        Ok(u) => u,
+        Err(err) => {
+            error!("Error parsing argument {} into a UserID: {:?}", args.current().unwrap(), err);
+            return Err(CommandError(err.to_string()));
+        }
+    };
+    args.advance();
+    let reason = args.rest();
+    let advise_channel = match &ctx.http.get_channel(646545388576178178) {
+        Ok(c) => c.id(),
+        Err(err) => {
+            error!("Error finding advisory channel: {:?}", err);
+            return Err(CommandError(err.to_string()));
+        },
+    };
+
+    let user_result = ctx.http.get_user(*target_user_id.as_u64());
+
+    let target_user = match &user_result {
+        Ok(u) => u,
+        Err(err) => {
+            error!("Error fetching advisory target: {:?}", err);
+            return Err(CommandError(err.to_string()));
+        }
+    };
+
+    let guild_result = ctx.http.get_guild(*msg.guild_id.unwrap().as_u64());
+
+    let guild = match &guild_result {
+        Ok(g) => g,
+        Err(err) => {
+            error!("Error fetching advising guild: {:?}", err);
+            return Err(CommandError(err.to_string()));
+        }
+    };
+
+    let avatar_url = match target_user.avatar_url() {
+        Some(url) => url,
+        None => target_user.default_avatar_url(),
+    };
+
+    match advise_channel.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("New Advisory Sent");
+            e.fields(vec![
+                ("User", target_user.name.clone(), false),
+                ("Server", guild.name.clone(), false),
+                ("Reason", String::from(reason), false)
+            ]);
+            e.color(Colour::ORANGE);
+            e.thumbnail(avatar_url);
+            e.footer(|f| {
+                f.text("DSC Bot | Powered by Rusty Development");
+                f
+            });
+            e
+        });
+        m
+    }) {
+        Err(err) => {
+            error!("Error sending advisory message: {:?}", err);
+            return Err(CommandError(err.to_string()));
+        },
+        _ => (),
+    }
+
+    match msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Advisory Sent");
+            e.description("Dispatched your advisory to DSC.");
+            e.colour(Colour::DARK_GREEN);
+            e
+        });
+        m
+    }) {
+        Err(err) => {
+            error!("Error responding to message: {:?}", err);
+            return Err(CommandError(err.to_string()));
+        },
+        _ => (),
+    }
+
     Ok(())
 }
