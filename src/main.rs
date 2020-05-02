@@ -18,8 +18,8 @@ use serenity::{
     model::{
         channel::{Message, Reaction, ReactionType},
         gateway::{Activity, ActivityType, Ready},
-        guild::Guild,
-        id::{GuildId, UserId},
+        guild::{Guild,Member},
+        id::{GuildId, UserId, ChannelId},
         user::{OnlineStatus, User},
     },
     prelude::*,
@@ -185,6 +185,54 @@ impl EventHandler for Handler {
         if let None = cache.get::<String>("qotd_channel") {
             data::init_guild_settings(&mut cache);
         }
+    }
+
+    fn guild_member_addition(&self, ctx: Context, guild_id: GuildId, new_member: Member) {
+        let db = data::get_discord_banlist();
+        let user_id = new_member.user_id();
+        let member_id = user_id.as_u64();
+        let mut stmt = db.prepare("SELECT reason FROM dbans WHERE userid = (?)").unwrap();
+        let mut ban_result = stmt.query(params![&member_id.to_string()]).unwrap();
+        let mut is_banned = false;
+        let mut reason = String::from("No reason provided");
+        if let Ok(o) = ban_result.next() {
+            if let Some(r) = o {
+                is_banned = true;
+                reason = r.get(0).unwrap();
+            }
+        }
+
+        let guild_arc = guild_id.to_guild_cached(&ctx).unwrap();
+        let guild = guild_arc.read();
+
+        let settings = data::get_pickle_database(&guild_id.as_u64(), "settings.db");
+        let alert_channel: ChannelId = match settings.get::<u64>("modlogs_channel") {
+            Some(channel) => channel.into(),
+            None => {
+                guild.system_channel_id.unwrap()
+            }
+        };
+        if is_banned {
+            let user = &ctx.http.get_user(*new_member.user_id().as_u64()).unwrap();
+            alert_channel.send_message(&ctx, |m| {
+                
+                m.embed(|e| {
+                    e.title("Alert!");
+                    e.description("A banned user has joined the server.");
+                    e.field("User", format!("{}#{}",user.name, user.discriminator), true);
+                    e.field("Reason", reason, true);
+                    e.footer(|f| {
+                        f.text(format!("DSC Bot | Powered by Rusty Developers"));
+                        f
+                    });
+                    e.colour(Colour::RED);
+
+                    e
+                });
+                m
+            }).unwrap();
+        }
+
     }
 }
 
