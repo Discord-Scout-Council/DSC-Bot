@@ -4,8 +4,8 @@
  */
 
 pub use crate::util::data::*;
-pub use serenity::framework::standard::{macros::command, Args, CommandResult, CommandError};
+pub use log::{debug, error, info, warn};
+pub use serenity::framework::standard::{macros::command, Args, CommandError, CommandResult};
 pub use serenity::model::id::UserId;
 pub use serenity::utils::Colour;
 pub use serenity::{model::channel::Message, model::guild::Member, prelude::*};
-pub use log::{debug,info,error,warn};

@@ -3,8 +3,8 @@
  *   All rights reserved.
  */
 
- use crate::prelude::*;
- use serenity::model::channel::{Reaction,ReactionType};
+use crate::prelude::*;
+use serenity::model::channel::{Reaction, ReactionType};
 
 enum VerifyType {
     Eagle,
@@ -16,7 +16,7 @@ enum VerifyType {
     Vigil,
 }
 
- pub fn handle_verification_file(ctx: &Context, msg: &Message) -> Result<(), String>{
+pub fn handle_verification_file(ctx: &Context, msg: &Message) -> Result<(), String> {
     if msg.attachments.len() == 0 {
         return Err(String::from("No attachments found"));
     }
@@ -33,7 +33,11 @@ enum VerifyType {
     let verify_channel_id = verify_channel.id();
 
     let verify_message = match verify_channel_id.send_message(&ctx, |m| {
-        m.content(format!("{}\n{}", &msg.author.id.as_u64().to_string(), msg.attachments.get(0).unwrap().url));
+        m.content(format!(
+            "{}\n{}",
+            &msg.author.id.as_u64().to_string(),
+            msg.attachments.get(0).unwrap().url
+        ));
         m
     }) {
         Err(err) => return Err(err.to_string()),
@@ -49,13 +53,13 @@ enum VerifyType {
     }
 
     Ok(())
- }
+}
 
- pub fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Result<(), String>{
-     let current_info = &ctx.http.get_current_application_info().unwrap();
+pub fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Result<(), String> {
+    let current_info = &ctx.http.get_current_application_info().unwrap();
     if react.user_id.as_u64() == current_info.id.as_u64() {
         return Err(String::from("Bot reaction"));
-    } 
+    }
     let message_id = react.message_id;
     let http_cache = &ctx.http;
     let message = match http_cache.get_message(684577265425973285, *message_id.as_u64()) {
@@ -94,11 +98,9 @@ enum VerifyType {
         return Err(err.to_string());
     }
 
-
-
     let user = match http_cache.get_user(split_contents.get(0).unwrap().parse::<u64>().unwrap()) {
         Err(err) => return Err(err.to_string()),
-        Ok(u) => u
+        Ok(u) => u,
     };
 
     let priv_chan = match user.create_dm_channel(http_cache) {
@@ -109,26 +111,25 @@ enum VerifyType {
     priv_chan.say(http_cache, "Verification successful");
     message.delete(http_cache);
 
-
     Ok(())
- }
+}
 
- fn define_emoji_vec<'a>() -> Vec<&'a str>{
-    let emoji_vec = vec!["🦅","⛰", "🏕", "🛂", "↗", "🟥", "🔺", "❌", "⚠", "⛔"];
+fn define_emoji_vec<'a>() -> Vec<&'a str> {
+    let emoji_vec = vec!["🦅", "⛰", "🏕", "🛂", "↗", "🟥", "🔺", "❌", "⚠", "⛔"];
 
     emoji_vec
- }
+}
 
- fn match_verify_type(emoji_used: &str) -> Option<VerifyType> {
-     let emoji_vec = define_emoji_vec();
-     match emoji_used {
-         "🦅" => return Some(VerifyType::Eagle),
-         "⛰" => return Some(VerifyType::SummitSilver),
-         "🏕" => return Some(VerifyType::CampStaff),
-         "🛂" => return Some(VerifyType::Ypt),
-         "↗" => return Some(VerifyType::Ordeal),
-         "🟥" => return Some(VerifyType::Brotherhood),
-         "🔺" => return Some(VerifyType::Vigil),
-         _ => return None,
-     }
- }
+fn match_verify_type(emoji_used: &str) -> Option<VerifyType> {
+    let emoji_vec = define_emoji_vec();
+    match emoji_used {
+        "🦅" => return Some(VerifyType::Eagle),
+        "⛰" => return Some(VerifyType::SummitSilver),
+        "🏕" => return Some(VerifyType::CampStaff),
+        "🛂" => return Some(VerifyType::Ypt),
+        "↗" => return Some(VerifyType::Ordeal),
+        "🟥" => return Some(VerifyType::Brotherhood),
+        "🔺" => return Some(VerifyType::Vigil),
+        _ => return None,
+    }
+}

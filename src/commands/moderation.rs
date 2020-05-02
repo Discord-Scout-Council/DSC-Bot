@@ -3,9 +3,9 @@
  *   All rights reserved.
  */
 
-use log::{error, debug, info, warn};
-use rusqlite::{params};
-use serenity::framework::standard::{macros::command, Args, CommandResult, CommandError};
+use log::{debug, error, info, warn};
+use rusqlite::params;
+use serenity::framework::standard::{macros::command, Args, CommandError, CommandResult};
 use serenity::model::id::UserId;
 use serenity::utils::Colour;
 use serenity::{model::channel::Message, model::user::User, prelude::*};
@@ -113,30 +113,29 @@ pub fn strikelog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult 
         result_vec.push((format!("Case #{}", r.case_id), r.reason.clone(), false));
     }
 
-    match msg.channel_id
-        .send_message(&ctx.http, |m| {
-            m.embed(|e| {
-                let mut title = String::from("Strikes for ");
-                title.push_str(&target_user.to_user(&ctx).unwrap().name);
-                e.title(title);
+    match msg.channel_id.send_message(&ctx.http, |m| {
+        m.embed(|e| {
+            let mut title = String::from("Strikes for ");
+            title.push_str(&target_user.to_user(&ctx).unwrap().name);
+            e.title(title);
 
-                e.fields(result_vec);
+            e.fields(result_vec);
 
-                let mut footer = String::from("Requested by ");
-                footer.push_str(&msg.author.name);
-                e.footer(|f| {
-                    f.text(footer);
-                    f
-                });
-
-                e
+            let mut footer = String::from("Requested by ");
+            footer.push_str(&msg.author.name);
+            e.footer(|f| {
+                f.text(footer);
+                f
             });
 
-            m
-        }) {
-            Err(err) => error!("Error sending strike log: {:?}", err),
-            Ok(_msg) => ()
-        }
+            e
+        });
+
+        m
+    }) {
+        Err(err) => error!("Error sending strike log: {:?}", err),
+        Ok(_msg) => (),
+    }
 
     Ok(())
 }
@@ -270,7 +269,7 @@ pub fn clearstrikes(ctx: &mut Context, msg: &Message, args: Args) -> CommandResu
         m
     }) {
         Err(err) => error!("Error sending clearstrike response: {:?}", err),
-        Ok(_msg) => ()
+        Ok(_msg) => (),
     }
 
     Ok(())
@@ -410,8 +409,12 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let age_db = get_global_pickle_database("age.db");
     let target_id = match args.parse::<UserId>() {
         Ok(id) => id,
-        Err(err) =>{
-            error!("Error parsing userid for `runuser` command in {}: {:?}", &msg.guild_id.unwrap(), err);
+        Err(err) => {
+            error!(
+                "Error parsing userid for `runuser` command in {}: {:?}",
+                &msg.guild_id.unwrap(),
+                err
+            );
             return Err(CommandError(err.to_string()));
         }
     };
@@ -444,7 +447,6 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     db_map.insert("Ordeal", ordeal_db);
     db_map.insert("Brotherhood", brotherhood_db);
     db_map.insert("Vigil", vigil_db);
-
 
     let mut verified_roles = String::from("‎"); // Contains a unicode "blank space" to appease JSON
     for (key, db) in db_map {
@@ -531,7 +533,6 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     Ok(())
 }
 
-
 #[command]
 #[description = "Sends the server's banlist to the DSC database"]
 #[only_in(guilds)]
@@ -540,12 +541,15 @@ pub fn syncbans(ctx: &mut Context, msg: &Message) -> CommandResult {
     let db = get_discord_banlist();
     let mut stmt = db.prepare("SELECT userid,reason FROM dbans WHERE guild_id = ?1")?;
     debug!("Getting current bans");
-    let res = stmt.query_map(params![&msg.guild_id.unwrap().as_u64().to_string()], |row| {
-        Ok(DscBan {
-            userid: row.get(0).unwrap(),
-            reason: row.get(1).unwrap(),
-        })
-    })?;
+    let res = stmt.query_map(
+        params![&msg.guild_id.unwrap().as_u64().to_string()],
+        |row| {
+            Ok(DscBan {
+                userid: row.get(0).unwrap(),
+                reason: row.get(1).unwrap(),
+            })
+        },
+    )?;
     let mut current_dsc_bans: Vec<DscBan> = Vec::new();
     for b in res {
         current_dsc_bans.push(b.unwrap());
@@ -554,7 +558,8 @@ pub fn syncbans(ctx: &mut Context, msg: &Message) -> CommandResult {
     debug!("Getting guild bans");
     let guild_bans = &ctx.http.get_bans(*msg.guild_id.unwrap().as_u64())?;
 
-    let mut insert_stmt = db.prepare("INSERT INTO dbans(userid,reason,guild_id,is_withdrawn) VALUES (?1, ?2, ?3, 0)")?;
+    let mut insert_stmt = db
+        .prepare("INSERT INTO dbans(userid,reason,guild_id,is_withdrawn) VALUES (?1, ?2, ?3, 0)")?;
 
     debug!("Checking server bans against DSC bans");
     for b in guild_bans.iter() {
@@ -565,16 +570,18 @@ pub fn syncbans(ctx: &mut Context, msg: &Message) -> CommandResult {
         let b_userid = b.user.id.as_u64();
         let b_guildid = *msg.guild_id.unwrap().as_u64();
         if current_dsc_bans.len() > 0 {
-        for dscb in current_dsc_bans.iter() {
-            if !b.user.id.as_u64() == dscb.userid.parse::<u64>().unwrap() {
-
-
-                insert_stmt.execute(params![b_userid.to_string(),reason,b_guildid.to_string()])?;
+            for dscb in current_dsc_bans.iter() {
+                if !b.user.id.as_u64() == dscb.userid.parse::<u64>().unwrap() {
+                    insert_stmt.execute(params![
+                        b_userid.to_string(),
+                        reason,
+                        b_guildid.to_string()
+                    ])?;
+                }
             }
+        } else {
+            insert_stmt.execute(params![b_userid.to_string(), reason, b_guildid.to_string()])?;
         }
-    } else {
-        insert_stmt.execute(params![b_userid.to_string(),reason,b_guildid.to_string()])?;
-    }
     }
     msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
@@ -607,7 +614,11 @@ pub fn advise(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
     let target_user_id = match args.current().unwrap().parse::<UserId>() {
         Ok(u) => u,
         Err(err) => {
-            error!("Error parsing argument {} into a UserID: {:?}", args.current().unwrap(), err);
+            error!(
+                "Error parsing argument {} into a UserID: {:?}",
+                args.current().unwrap(),
+                err
+            );
             return Err(CommandError(err.to_string()));
         }
     };
@@ -618,7 +629,7 @@ pub fn advise(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
         Err(err) => {
             error!("Error finding advisory channel: {:?}", err);
             return Err(CommandError(err.to_string()));
-        },
+        }
     };
 
     let user_result = ctx.http.get_user(*target_user_id.as_u64());
@@ -652,7 +663,7 @@ pub fn advise(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
             e.fields(vec![
                 ("User", target_user.name.clone(), false),
                 ("Server", guild.name.clone(), false),
-                ("Reason", String::from(reason), false)
+                ("Reason", String::from(reason), false),
             ]);
             e.color(Colour::ORANGE);
             e.thumbnail(avatar_url);
@@ -667,7 +678,7 @@ pub fn advise(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
         Err(err) => {
             error!("Error sending advisory message: {:?}", err);
             return Err(CommandError(err.to_string()));
-        },
+        }
         _ => (),
     }
 
@@ -683,7 +694,7 @@ pub fn advise(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
         Err(err) => {
             error!("Error responding to message: {:?}", err);
             return Err(CommandError(err.to_string()));
-        },
+        }
         _ => (),
     }
 

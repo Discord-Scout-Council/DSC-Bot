@@ -7,18 +7,14 @@ use serenity::{
         help_commands,
         macros::{group, help},
         Args, CommandGroup, CommandResult,
-        DispatchError::{
-            CheckFailed, NotEnoughArguments,
-            TooManyArguments,
-            OnlyForGuilds
-        },
+        DispatchError::{CheckFailed, NotEnoughArguments, OnlyForGuilds, TooManyArguments},
         HelpOptions, StandardFramework,
     },
     model::{
         channel::{Message, Reaction},
         gateway::{Activity, Ready},
-        guild::{Guild,Member},
-        id::{GuildId, UserId, ChannelId},
+        guild::{Guild, Member},
+        id::{ChannelId, GuildId, UserId},
         user::{OnlineStatus, User},
     },
     prelude::*,
@@ -26,7 +22,7 @@ use serenity::{
 };
 use std::{collections::HashSet, env};
 
-use rusqlite::{params};
+use rusqlite::params;
 
 use log::{debug, error, info};
 
@@ -77,9 +73,11 @@ impl EventHandler for Handler {
     }
 
     fn reaction_add(&self, ctx: Context, add_reaction: Reaction) {
-        match verification::handle_verification_reaction(&ctx, add_reaction) {
-            Err(e) => error!("Error verifying user. {}", e),
-            _ => (),
+        if add_reaction.channel_id.as_u64() == &684577265425973285u64 {
+            match verification::handle_verification_reaction(&ctx, add_reaction) {
+                Err(e) => error!("Error verifying user. {}", e),
+                _ => (),
+            }
         }
     }
 
@@ -158,7 +156,10 @@ impl EventHandler for Handler {
                 guild_id.as_u64().to_string()
             ],
         ) {
-            error!("Encountered an error adding a ban for {}: {:?}", banned_user.name, err);
+            error!(
+                "Encountered an error adding a ban for {}: {:?}",
+                banned_user.name, err
+            );
         };
         let blacklist_channel = ctx.http.get_channel(646545388576178178).unwrap();
         let blacklist_channel_id = blacklist_channel.id();
@@ -207,7 +208,9 @@ impl EventHandler for Handler {
         let db = data::get_discord_banlist();
         let user_id = new_member.user_id();
         let member_id = user_id.as_u64();
-        let mut stmt = db.prepare("SELECT reason FROM dbans WHERE userid = (?)").unwrap();
+        let mut stmt = db
+            .prepare("SELECT reason FROM dbans WHERE userid = (?)")
+            .unwrap();
         let mut ban_result = stmt.query(params![&member_id.to_string()]).unwrap();
         let mut is_banned = false;
         let mut reason = String::from("No reason provided");
@@ -228,18 +231,21 @@ impl EventHandler for Handler {
             None => 0u64,
         };
         if temp_channel == 0 {
-                alert_channel = guild.system_channel_id.unwrap();
+            alert_channel = guild.system_channel_id.unwrap();
         } else {
             alert_channel = temp_channel.into();
         }
         if is_banned {
             let user = &ctx.http.get_user(*new_member.user_id().as_u64()).unwrap();
             match alert_channel.send_message(&ctx, |m| {
-                
                 m.embed(|e| {
                     e.title("Alert!");
                     e.description("A banned user has joined the server.");
-                    e.field("User", format!("{}#{}",user.name, user.discriminator), true);
+                    e.field(
+                        "User",
+                        format!("{}#{}", user.name, user.discriminator),
+                        true,
+                    );
                     e.field("Reason", reason, true);
                     e.footer(|f| {
                         f.text(format!("DSC Bot | Powered by Rusty Developers"));
@@ -252,12 +258,14 @@ impl EventHandler for Handler {
                 m
             }) {
                 Err(err) => {
-                    error!("Encountered an error warning {} about {}#{}: {:?}", &guild.name, user.name,user.discriminator, err);
-                },
+                    error!(
+                        "Encountered an error warning {} about {}#{}: {:?}",
+                        &guild.name, user.name, user.discriminator, err
+                    );
+                }
                 _ => (),
             }
         }
-
     }
 }
 
@@ -318,7 +326,7 @@ fn main() {
 
                     match msg.channel_id.say(&context, &s) {
                         Err(err) => error!("Error responding to invalid arguments: {:?}", err),
-                        Ok(_msg) => ()
+                        Ok(_msg) => (),
                     }
                 }
                 TooManyArguments { max, given } => {
@@ -327,24 +335,34 @@ fn main() {
 
                     match msg.channel_id.say(&context, &s) {
                         Err(err) => error!("Error responding to invalid arguments: {:?}", err),
-                        Ok(_msg) => ()
+                        Ok(_msg) => (),
                     }
                 }
                 CheckFailed(stri, _reason) => {
                     info!("{}", stri);
                     info!("{} failed to pass check {}", &msg.author.name, stri);
 
-                    match msg.channel_id
-                        .say(&context, "You do not have permission to use this command!") {
-                            Err(err) => error!("Error responding to failed check: {:?}", err),
-                            Ok(_msg) => ()
-                        }
-                },
+                    match msg
+                        .channel_id
+                        .say(&context, "You do not have permission to use this command!")
+                    {
+                        Err(err) => error!("Error responding to failed check: {:?}", err),
+                        Ok(_msg) => (),
+                    }
+                }
                 OnlyForGuilds => {
-                    info!("{} tried to use a guild-only command in DMs", &msg.author.name);
-                    match msg.channel_id.say(&context, "Please run this command in a Server!") {
-                        Err(err) => error!("Error sending invalid context msg to {}", &msg.author.name),
-                        _ => ()
+                    info!(
+                        "{} tried to use a guild-only command in DMs",
+                        &msg.author.name
+                    );
+                    match msg
+                        .channel_id
+                        .say(&context, "Please run this command in a Server!")
+                    {
+                        Err(err) => {
+                            error!("Error sending invalid context msg to {}", &msg.author.name)
+                        }
+                        _ => (),
                     }
                 }
                 _ => error!("Unhandled dispatch error."),

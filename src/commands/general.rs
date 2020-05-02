@@ -76,7 +76,7 @@ pub fn serverinfo(ctx: &mut Context, msg: &Message) -> CommandResult {
         m
     }) {
         Err(err) => error!("Error sending server count: {:?}", err),
-        Ok(_msg) => ()
+        Ok(_msg) => (),
     }
 
     Ok(())

@@ -4,12 +4,12 @@
  */
 
 use crate::checks::*;
+use crate::prelude::*;
 use crate::util::data::{get_pickle_database, init_guild_settings};
 use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::id::{ChannelId, RoleId};
 use serenity::utils::Colour;
 use serenity::{model::channel::Message, prelude::*};
-use crate::prelude::*;
 
 #[command]
 #[description = "Manage server settings"]
