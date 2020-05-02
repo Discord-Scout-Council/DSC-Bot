@@ -3,7 +3,7 @@
  *   All rights reserved.
  */
 
-use log::{error, info, warn};
+use log::{error, debug, warn};
 use rusqlite::{params, Connection, Result, RowIndex};
 use serenity::framework::standard::{macros::command, Args, CommandResult, StandardFramework};
 use serenity::model::id::UserId;
@@ -30,6 +30,11 @@ struct StrikeLog {
     reason: String,
     moderator: UserId,
     case_id: String,
+}
+
+struct DscBan {
+    userid: String,
+    reason: String,
 }
 
 #[command]
@@ -465,5 +470,68 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         m
     })?;
 
+    Ok(())
+}
+
+
+#[command]
+#[description = "Sends the server's banlist to the DSC database"]
+#[only_in(guilds)]
+#[checks(Moderator)]
+pub fn syncbans(ctx: &mut Context, msg: &Message) -> CommandResult {
+    let db = get_discord_banlist();
+    let mut stmt = db.prepare("SELECT userid,reason FROM dbans WHERE guild_id = ?1")?;
+    debug!("Getting current bans");
+    let mut res = stmt.query_map(params![&msg.guild_id.unwrap().as_u64().to_string()], |row| {
+        Ok(DscBan {
+            userid: row.get(0).unwrap(),
+            reason: row.get(1).unwrap(),
+        })
+    })?;
+    let mut current_dsc_bans: Vec<DscBan> = Vec::new();
+    for b in res {
+        current_dsc_bans.push(b.unwrap());
+    }
+
+    debug!("Getting guild bans");
+    let guild_bans = &ctx.http.get_bans(*msg.guild_id.unwrap().as_u64())?;
+
+    let mut insert_stmt = db.prepare("INSERT INTO dbans(userid,reason,guild_id,is_withdrawn) VALUES (?1, ?2, ?3, 0)")?;
+
+    debug!("Checking server bans against DSC bans");
+    for b in guild_bans.iter() {
+        let reason: String = match &b.reason {
+            Some(r) => r.clone(),
+            None => String::from("No reason provided"),
+        };
+        let b_userid = b.user.id.as_u64();
+        let b_guildid = *msg.guild_id.unwrap().as_u64();
+        if current_dsc_bans.len() > 0 {
+        for dscb in current_dsc_bans.iter() {
+            if !b.user.id.as_u64() == dscb.userid.parse::<u64>().unwrap() {
+
+
+                insert_stmt.execute(params![b_userid.to_string(),reason,b_guildid.to_string()])?;
+            }
+        }
+    } else {
+        insert_stmt.execute(params![b_userid.to_string(),reason,b_guildid.to_string()])?;
+    }
+    }
+    msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("DSC Banlist");
+            e.description("Finished syncing bans to the DSC Banlist");
+            e.colour(Colour::DARK_GREEN);
+            e.footer(|f| {
+                f.text(format!("DSC Bot | Powered by Rusty Development"));
+                f
+            });
+            e
+        });
+        m
+    })?;
+
+    debug!("Command finished");
     Ok(())
 }
