@@ -49,7 +49,7 @@ struct General;
 struct Owner;
 
 #[group]
-#[commands(strike, strikelog, wordfilter, clearstrikes, modstrike, getcase)]
+#[commands(strike, strikelog, wordfilter, clearstrikes, modstrike, getcase, runuser)]
 struct Moderation;
 
 
@@ -123,7 +123,7 @@ impl EventHandler for Handler {
         let blacklist_channel_id = blacklist_channel.id();
         let guild = ctx.http.get_guild(guild_id.as_u64().clone()).unwrap();
 
-        if let error = blacklist_channel_id.send_message(&ctx, |m| {
+        if let Error = blacklist_channel_id.send_message(&ctx, |m| {
             m.embed(|e| {
                 e.title("New Ban Detected");
                 e.fields(vec![

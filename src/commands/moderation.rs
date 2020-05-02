@@ -13,7 +13,7 @@ use serenity::{model::channel::Message, model::user::User, prelude::*};
 use crate::checks::*;
 
 use crate::util::{
-    data::{get_global_pickle_database, get_pickle_database, get_strike_database},
+    data::{get_global_pickle_database, get_pickle_database, get_strike_database, get_discord_banlist},
     moderation::*,
 };
 
@@ -382,6 +382,79 @@ pub fn getcase(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
         });
         m
     })?;
+
+    Ok(())
+}
+
+
+#[command]
+#[usage("<@Mention>")]
+#[description = "Checks a user against the banlist and returns other information"]
+#[num_args(1)]
+#[only_in(guilds)]
+pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let db = get_discord_banlist();
+    let target_id = args.parse::<UserId>().unwrap();
+    let mut stmt = db
+        .prepare("SELECT reason,guild_id,id FROM dbans WHERE userid = (?)")
+        .unwrap();    
+    let mut ban_result = stmt.query(params![&target_id.as_u64().to_string()])?;
+    let mut is_banned = false;
+    if let Ok(o) = ban_result.next() {
+        if let Some(r) = o {
+            is_banned = true;
+        }
+    }
+
+    let target_user = &ctx.http.get_user(*target_id.as_u64())?;
+    let guild = &ctx.http.get_guild(*msg.guild_id.unwrap().as_u64())?;
+    let user_name = &target_user.name;
+    let user_id = target_id.as_u64();
+    let member = guild.member(&ctx, *user_id)?;
+    let joined_guild_datetime = member.joined_at.unwrap();
+    let joined_guild_date = joined_guild_datetime.date().naive_utc();
+    let joined_guild_time = joined_guild_datetime.time();
+
+    let joined_discord_datetime = target_id.created_at();
+    let joined_discord_date = joined_discord_datetime.date().naive_utc();
+    let joined_discord_time = joined_discord_datetime.time();
+
+    let user_avatar = match target_user.avatar_url() {
+        Some(url) => url,
+        None => target_user.default_avatar_url()
+    };
+
+    msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("User Info");
+            if is_banned {
+                e.description("User has a current ban on a DSC member server.");
+                e.colour(Colour::RED);
+            } else {
+                e.description("User is in good standing with DSC.");
+                e.colour(Colour::DARK_GREEN);
+            }
+            e.thumbnail(user_avatar);
+            e.fields(vec![
+                ("Name", format!("{}#{}", user_name, target_user.discriminator), true),
+                ("ID", user_id.to_string(), true),
+                ("Joined Server", format!("{}, {}Z", joined_guild_date, joined_guild_time), true),
+                ("Joined Discord", format!("{}, {}Z", joined_discord_date, joined_discord_time), true)
+            ]);
+
+            e.footer(|f| {
+                f.text(format!("DSC Bot | Powered by Rusty Developers"));
+                f
+            });
+
+
+            e
+        });
+        m
+    })?;
+    
+
+
 
     Ok(())
 }
