@@ -5,19 +5,18 @@
 
 use crate::checks::*;
 use crate::util::data::{get_pickle_database, init_guild_settings};
-use pickledb::{PickleDb, PickleDbDumpPolicy};
-use serenity::framework::standard::{macros::command, Args, CommandResult, StandardFramework};
+use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::id::{ChannelId, RoleId};
 use serenity::utils::Colour;
-use serenity::{model::channel::Message, model::guild::Member, prelude::*};
-use std::cmp::Ordering;
+use serenity::{model::channel::Message, prelude::*};
+use crate::prelude::*;
 
 #[command]
 #[description = "Manage server settings"]
 #[checks(Moderator)]
 #[sub_commands(get, set)]
 pub fn serversettings(ctx: &mut Context, msg: &Message) -> CommandResult {
-    msg.channel_id.send_message(&ctx, |m| {
+    if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
             e.title("Server Settings Help");
             e.description("Changes and views server settings for the current server\n\nUse a value from the table below to change or view a setting");
@@ -35,7 +34,9 @@ pub fn serversettings(ctx: &mut Context, msg: &Message) -> CommandResult {
             e
         });
         m
-    })?;
+    }) {
+        error!("Error sending server settings help: {:?}", err);
+    }
 
     Ok(())
 }
@@ -44,7 +45,7 @@ pub fn serversettings(ctx: &mut Context, msg: &Message) -> CommandResult {
 #[description = "Gets current value of a setting"]
 #[checks(Moderator)]
 #[num_args(1)]
-pub fn get(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub fn get(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let db = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "settings.db");
 
     match db.get::<String>(&args.rest()) {
@@ -87,7 +88,7 @@ pub fn get(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 #[description = "Sets a setting"]
 #[usage("<Setting> <Value>")]
 #[min_args(2)]
-pub fn set(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub fn set(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let mut settings = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "settings.db");
     let setting_name = args.current().unwrap();
     let mut arg_value = args.clone();
