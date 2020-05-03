@@ -86,9 +86,30 @@ pub fn age(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[description = "Gives instructions on how to verify your Awards and Advancements"]
 pub fn verify(ctx: &mut Context, msg: &Message) -> CommandResult {
-    match msg.channel_id.say(&ctx.http, "In order to verify your roles, please send a direct message to the bot, and attach an image of your proof. **Only attach one image per message, you will only be verified for one award per message.**") {
-        Err(err) => return Err(CommandError(err.to_string())),
-        _ => (),
+
+    if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Verification");
+            e.description("In order to verify your roles, please send a direct message to the bot, and attach an image of your proof. **Only attach one image per message, you will only be verified for one award per message.**");
+            e.fields(vec![
+                ("Eagle Scout", "Patch, Card, or Certificate", true),
+                ("Summit/Silver", "Patch, Card, or Certificate", true),
+                ("Camp Staff", "Name tag or shirt", true),
+                ("YPT", "Certificate. PDF is acceptable for this verification", true),
+                ("OA Honor", "Sash or membership card", true),
+            ]);
+            e.footer(|f| {
+                f.text("DSC Bot | Powered by Rusty Development");
+                f
+            });
+            e.colour(Colour::BLUE);
+
+            e
+        });
+        m
+    }) {
+        error!("Error sending verify instructions: {:?}", err);
+        return Err(CommandError(err.to_string()));
     }
 
     Ok(())
