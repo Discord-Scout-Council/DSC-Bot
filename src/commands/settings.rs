@@ -23,10 +23,7 @@ pub fn serversettings(ctx: &mut Context, msg: &Message) -> CommandResult {
             e.description("Changes and views server settings for the current server\n\nUse a value from the table below to change or view a setting");
             e.fields(vec![
                 ("Usage", "serversettings set/get <setting> (value)", false),
-                ("QOTD Channel", "qotd_channel", true),
-                ("QOTD Role", "qotd_role", true),
-                ("QOTD Suggestions Channel", "qotd_suggest_channel", true),
-                ("Modlogs Channel", "modlogs_channel", true)
+                ("Banned User Announcements", "modlogs_channel", true)
             ]);
             e.footer(|f| {
                 f.text(format!("Requested by {}", &msg.author.name));
