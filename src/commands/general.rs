@@ -4,6 +4,7 @@
  */
 
 use crate::prelude::*;
+use serenity::{http::GuildPagination, model::{id::GuildId, guild::PartialGuild, invite::{Invite, RichInvite}}};
 
 #[command]
 #[description = "Pings the bot"]
@@ -136,6 +137,80 @@ pub fn privacy(ctx: &mut Context, msg: &Message) -> CommandResult {
     }) {
         Err(err) => error!("Error sending privacy information: {:?}", err),
         _ => ()
+    }
+
+    Ok(())
+}
+
+#[command]
+#[description = "Returns a list of member servers, with invites if available. This command may take a while to process."]
+pub fn servers(ctx: &mut Context, msg: &Message) -> CommandResult {
+    let http_cache = &ctx.http;
+    let current_info = http_cache.get_current_application_info()?;
+    let bot_id = current_info.id.as_u64();
+    http_cache.broadcast_typing(*msg.channel_id.as_u64());
+    let guild_info_list = match http_cache.get_guilds(&GuildPagination::After(GuildId(0)), 50) {
+        Ok(v) => v,
+        Err(err) => return Err(CommandError(err.to_string())),
+    };
+
+    let mut guild_ids: Vec<GuildId> = Vec::new();
+    for info in guild_info_list.iter() {
+        guild_ids.push(info.id);
+    }
+
+    let mut fields: Vec<(String, String, bool)> = Vec::new();
+    for guild in guild_info_list.iter() {
+        if *guild.id.as_u64() == 363354951071694848u64 || *guild.id.as_u64() == 646540745443901469u64 {
+            continue;
+        }
+        let guild_name = &guild.name;
+        let partial_guild = match guild.id.to_partial_guild(http_cache) {
+            Ok(p) => p,
+            Err(err) => return Err(CommandError(err.to_string())),
+        };
+        let guild_owner = match partial_guild.owner_id.to_user(http_cache) {
+            Ok(u) => u,
+            Err(err) => return Err(CommandError(err.to_string())),
+        };
+        let owner_name = format!("<@{}>", guild_owner.id.as_u64().to_string());
+        let guild_arc = match partial_guild.id.to_guild_cached(&ctx) {
+            Some(a) => a,
+            None => return Err(CommandError("Could not open the guild Arc.".to_string())),
+        };
+        let guild = guild_arc.read();
+        let default_channel_arc = match guild.default_channel(UserId(*bot_id)) {
+            Some(c) => c,
+            None => return Err(CommandError("Could not find default channel.".to_string())),
+        };
+        let default_channel = default_channel_arc.read();
+        let invite: String = match Invite::create(http_cache, default_channel.id, |mut i| {
+            i.max_age(0);
+            i
+        }) {
+            Ok(i) => i.url(),
+            Err(err) => {
+                warn!("Could not create invite for {}", guild_name);
+                "No invite provided".to_string()
+            }
+        };
+        fields.push((guild_name.clone(), format!("{}\n{}",owner_name, invite), false));
+    }
+
+    if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("DSC Server List");
+            e.description("This is a list of all DSC Member Servers");
+            e.fields(fields);
+            e.footer(|f| {
+                f.text("DSC Bot | Powered by Rusty Development");
+                f
+            });
+            e
+        });
+        m
+    }) {
+        return Err(CommandError(err.to_string()));
     }
 
     Ok(())

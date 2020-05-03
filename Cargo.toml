@@ -12,10 +12,23 @@ repository = "https://git.sr.ht/~muirrum/campmasterconstantine"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serenity = "0.8.6"
 rand = "0.7.3"
 pickledb = "0.4.1"
 rusqlite = "0.23.1"
 kankyo = "0.3"
 env_logger = "0.7.1"
 log = "0.4.8"
+
+[dependencies.serenity]
+version = "0.8.6"
+default-features = false
+features = [
+    "builder",
+    "client",
+    "framework",
+    "model",
+    "cache",
+    "standard_framework",
+    "utils",
+    "rustls_backend"
+]

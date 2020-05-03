@@ -35,7 +35,7 @@ use util::*;
 mod prelude;
 
 #[group]
-#[commands(ping, about, serverinfo, botsuggest, privacy)]
+#[commands(ping, about, serverinfo, botsuggest, privacy, servers)]
 struct General;
 
 #[group]
@@ -372,6 +372,26 @@ fn main() {
                     }
                 }
                 _ => error!("Unhandled dispatch error."),
+            })
+            .after(|ctx, msg, cmd_name, error | {
+                if let Err(err) = error {
+                    error!("Error in {}: {:?}", cmd_name, err);
+                    if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
+                        m.embed(|e| {
+                            e.title("Command Error");
+                            e.description("There was an error running the command. Please report to DSC Tech Team");
+                            e.footer(|f| {
+                                f.text("DSC Bot | Powered by Rusty Development");
+                                f
+                            });
+                            e.colour(Colour::RED);
+                            e
+                        });
+                        m
+                    }) {
+                        error!("Error sending error message {:?}", err);
+                    }
+                }
             }),
     );
 
