@@ -132,8 +132,24 @@ pub fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Result<St
         return Err(err.to_string());
     }
 
-    priv_chan.say(http_cache, "Verification successful");
-    message.delete(http_cache);
+    if let Err(err) = priv_chan.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Verification Request Status Update");
+            e.description("Successfully verified.");
+            e.colour(Colour::DARK_GREEN);
+            e.footer(|f| {
+                f.text("DSC Bot | Powered by Rusty Development");
+                f
+            });
+            e
+        });
+        m
+    }) {
+        return Err(format!("Error sending verification success message {:?}", err.to_string()));
+    }
+    if let Err(err) = message.delete(http_cache) {
+        return Err(format!("Failed to delete verification request message: {:?}", err.to_string()));
+    }
 
     Ok(String::from(""))
 }
