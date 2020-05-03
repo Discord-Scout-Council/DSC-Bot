@@ -53,6 +53,22 @@ pub fn handle_verification_file(ctx: &Context, msg: &Message) -> Result<(), Stri
         }
     }
 
+    if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Verification Request Status Update");
+            e.description("Request Submitted");
+            e.colour(Colour::BLUE);
+            e.footer(|f| {
+                f.text("DSC Bot | Powered by Rusty Development");
+                f
+            });
+            e
+        });
+        m
+    }) {
+        return Err(format!("Error sending successful submission message: {:?}", err.to_string()));
+    }
+
     Ok(())
 }
 
