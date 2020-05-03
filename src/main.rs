@@ -7,7 +7,7 @@ use serenity::{
         help_commands,
         macros::{group, help},
         Args, CommandGroup, CommandResult,
-        DispatchError::{CheckFailed, NotEnoughArguments, OnlyForGuilds, TooManyArguments},
+        DispatchError::{CheckFailed, NotEnoughArguments, OnlyForGuilds, TooManyArguments, CommandDisabled},
         HelpOptions, StandardFramework,
     },
     model::{
@@ -313,11 +313,13 @@ fn main() {
     };
 
     debug!("Initializing client");
+    let mut disabled_commands: HashSet<String> = HashSet::new();
+    disabled_commands.insert("servers".to_string());
     client.with_framework(
         StandardFramework::new()
             .configure(|c| {
                 c.prefix(&env::var("DISCORD_PREFIX").unwrap())
-                    .owners(owners)
+                    .owners(owners).disabled_commands(disabled_commands)
             })
             .help(&HELP)
             .group(&GENERAL_GROUP)
@@ -369,6 +371,23 @@ fn main() {
                             error!("Error sending invalid context msg to {}", &msg.author.name)
                         }
                         _ => (),
+                    }
+                },
+                CommandDisabled(stri) => {
+                    if let Err(err) = msg.channel_id.send_message(&context, |m| {
+                        m.embed(|e| {
+                            e.title("Command Error");
+                            e.description("That command has been disabled.");
+                            e.colour(Colour::RED);
+                            e.footer(|f| {
+                                f.text("DSC Bot | Powered by Rusty Development");
+                                f
+                            });
+                            e
+                        });
+                        m
+                    }) {
+                        error!("Error sending disabled command message to {}", &msg.author.name);
                     }
                 }
                 _ => error!("Unhandled dispatch error."),
