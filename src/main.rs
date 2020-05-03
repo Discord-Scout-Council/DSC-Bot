@@ -231,7 +231,13 @@ impl EventHandler for Handler {
             None => 0u64,
         };
         if temp_channel == 0 {
-            alert_channel = guild.system_channel_id.unwrap();
+            alert_channel = match guild.system_channel_id {
+                Some(c) => c,
+                None => {
+                    error!("Error fetching mod logs channel: Channel not set and System Channel does not exist.");
+                    return;
+                }
+            }
         } else {
             alert_channel = temp_channel.into();
         }
