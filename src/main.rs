@@ -49,10 +49,12 @@ struct Owner;
     wordfilter,
     clearstrikes,
     modstrike,
-    getcase,
+    getstrike,
     runuser,
     syncbans,
-    advise
+    advise,
+    modban,
+    bans,
 )]
 struct Moderation;
 
@@ -68,7 +70,7 @@ struct Handler;
 impl EventHandler for Handler {
     fn ready(&self, ctx: Context, _ready: Ready) {
         info!("Logged in to Discord successfully");
-        let activity = Activity::playing("with bans");
+        let activity = Activity::playing("with vibes");
         ctx.set_presence(Some(activity), OnlineStatus::DoNotDisturb);
     }
 

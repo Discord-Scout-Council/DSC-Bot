@@ -14,6 +14,8 @@ use std::collections::HashMap;
 
 use crate::checks::*;
 
+use std::cmp::Ordering;
+
 use crate::util::{
     data::{
         get_discord_banlist, get_global_pickle_database, get_pickle_database, get_strike_database,
@@ -27,6 +29,8 @@ struct Strike {
     moderator: UserId,
 }
 
+#[derive(Eq)]
+#[derive(Hash)]
 struct StrikeLog {
     user: UserId,
     reason: String,
@@ -37,6 +41,22 @@ struct StrikeLog {
 struct DscBan {
     userid: String,
     reason: String,
+}
+
+impl Ord for StrikeLog {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.case_id.parse::<u32>().unwrap().cmp(&other.case_id.parse::<u32>().unwrap())
+    }
+}
+impl PartialOrd for StrikeLog {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl PartialEq for StrikeLog {
+    fn eq(&self, other: &Self) -> bool {
+        self.case_id.parse::<u32>().unwrap() == other.case_id.parse::<u32>().unwrap()
+    }
 }
 
 #[command]
@@ -352,7 +372,7 @@ pub fn modstrike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
 #[num_args(1)]
 #[checks(Moderator)]
 #[only_in(guilds)]
-pub fn getcase(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+pub fn getstrike(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let strikes = get_strike_database(&msg.guild_id.unwrap().as_u64());
     let mut stmt =
         strikes.prepare("SELECT userid,moderator,reason,is_withdrawn FROM strikes WHERE id = ?")?;
@@ -431,6 +451,7 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     }
 
     // Verified Roles
+    //* Create the pickledb instance here, and then add it to the db_map later with the right key.
     let eagle_db = get_global_pickle_database("eagle.db");
     let summit_db = get_global_pickle_database("summit.db");
     let cstaff_db = get_global_pickle_database("campstaff.db");
@@ -438,6 +459,7 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let ordeal_db = get_global_pickle_database("ordeal.db");
     let brotherhood_db = get_global_pickle_database("brotherhood.db");
     let vigil_db = get_global_pickle_database("vigil.db");
+    let qm_db = get_global_pickle_database("quartermaster.db");
     let mut db_map: HashMap<&str, pickledb::PickleDb> = HashMap::new();
 
     db_map.insert("Eagle", eagle_db);
@@ -447,6 +469,7 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     db_map.insert("Ordeal", ordeal_db);
     db_map.insert("Brotherhood", brotherhood_db);
     db_map.insert("Vigil", vigil_db);
+    db_map.insert("Quartermaster", qm_db);
 
     let mut verified_roles = String::from("‎"); // Contains a unicode "blank space" to appease JSON
     for (key, db) in db_map {
@@ -696,6 +719,156 @@ pub fn advise(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
             return Err(CommandError(err.to_string()));
         }
         _ => (),
+    }
+
+    Ok(())
+}
+
+
+#[command]
+#[description = "Modifies a current strike"]
+#[usage("<Case Number> <Thing to modify> <What to modify it to>")]
+#[min_args(2)]
+#[checks(VibeOfficer)]
+#[only_in(guilds)]
+pub fn modban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    let db = get_discord_banlist();
+    let case_id = &args.single::<u32>()?;
+    let modify_thing = &args.single::<String>().unwrap().to_lowercase();
+    let new_value = args.rest();
+
+    if modify_thing == "reason" {
+        db.execute(
+            "UPDATE dbans SET reason = ?1 WHERE id = ?2",
+            params![new_value, case_id],
+        )?;
+        msg.channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Moderation");
+                e.description(format!(
+                    "Successfully modified case {}!",
+                    case_id.to_string()
+                ));
+                e.field("Field", "Reason", true);
+                e.field("New Value", new_value, true);
+                e.colour(Colour::DARK_GREEN);
+                e.footer(|f| {
+                    f.text(format!("Requested by {}", &msg.author.name));
+                    f
+                });
+                e
+            });
+            m
+        })?;
+    } else if modify_thing == "withdraw" {
+        db.execute(
+            "UPDATE dbans SET is_withdrawn = 1 WHERE id = ?1",
+            params![case_id],
+        )?;
+        msg.channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Moderation");
+                e.description(format!("Sucessfully withdrew case #{}", case_id));
+                e.colour(Colour::DARK_GREEN);
+                e.footer(|f| {
+                    f.text(format!("Requested by {}", &msg.author.name));
+                    f
+                });
+                e
+            });
+            m
+        })?;
+    } else {
+        msg.channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Moderation");
+                e.description("You can only modify a strike's reason or withdraw.");
+                e.colour(Colour::RED);
+                e.footer(|f| {
+                    f.text(format!("Requested by {}", &msg.author.name));
+                    f
+                });
+                e
+            });
+            m
+        })?;
+    }
+
+    Ok(())
+}
+
+#[command]
+#[description = "Displays a list of strikes given to a user"]
+#[only_in(guilds)]
+#[min_args(1)]
+#[checks(VibeOfficer)]
+#[owner_privilege]
+pub fn bans(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let strike_conn = get_discord_banlist();
+    let target_user = args.parse::<UserId>().unwrap();
+
+    let mut stmt = strike_conn
+        .prepare("SELECT reason,id,is_withdrawn FROM dbans WHERE userid = (?)")
+        .unwrap();
+    let mut rows = stmt
+        .query(params![target_user.as_u64().to_string()])
+        .unwrap();
+
+    let mut bans: HashMap<StrikeLog, bool> = HashMap::new();
+    while let Some(row) = rows.next().unwrap() {
+        let reason = row.get::<usize, String>(0);
+        let case_id = row.get::<usize, u32>(1);
+        let is_withdrawn = match row.get::<usize, u32>(2) {
+            Ok(i) => {
+                if i == 1 {
+                    true
+                } else {
+                    false
+                }
+            },
+            _ => false,
+        };
+        let strike = StrikeLog {
+            user: target_user,
+            moderator: UserId(705876821232844910),
+            reason: reason.unwrap(),
+            case_id: case_id.unwrap().to_string(),
+        };
+        bans.insert(strike, is_withdrawn);
+    }
+
+    let mut result_vec: Vec<(String, String, bool)> = Vec::new();
+
+    for (_i, (s, w)) in bans.iter().enumerate() {
+        if *w {
+            result_vec.push((format!("Case #{}", s.case_id), format!("~~{}~~", s.reason.clone()), false));
+        } else {
+            result_vec.push((format!("Case #{}", s.case_id), s.reason.clone(), false));
+        }
+    }
+
+    match msg.channel_id.send_message(&ctx.http, |m| {
+        m.embed(|e| {
+            let mut title = String::from("Bans for ");
+            title.push_str(&target_user.to_user(&ctx).unwrap().name);
+            e.title(title);
+
+            e.fields(result_vec);
+
+            let mut footer = String::from("Requested by ");
+            footer.push_str(&msg.author.name);
+            e.footer(|f| {
+                f.text(footer);
+                f
+            });
+
+            e
+        });
+
+        m
+    }) {
+        Err(err) => error!("Error sending ban log: {:?}", err),
+        Ok(_msg) => (),
     }
 
     Ok(())

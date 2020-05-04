@@ -14,6 +14,7 @@ enum VerifyType {
     Ordeal,
     Brotherhood,
     Vigil,
+    Quartermaster,
     Close,
 }
 
@@ -122,6 +123,7 @@ pub fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Result<St
         VerifyType::Ordeal => get_global_pickle_database("ordeal.db"),
         VerifyType::Brotherhood => get_global_pickle_database("brotherhood.db"),
         VerifyType::Vigil => get_global_pickle_database("vigil.db"),
+        VerifyType::Quartermaster => get_global_pickle_database("quartermaster.db"),
         VerifyType::Close => {
             if let Err(err) = priv_chan.send_message(&ctx, |m| {
                 m.embed(|e| {
@@ -169,7 +171,7 @@ pub fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Result<St
 }
 
 fn define_emoji_vec<'a>() -> Vec<&'a str> {
-    let emoji_vec = vec!["🦅", "⛰", "🏕", "🛂", "↗", "🟥", "🔺", "❌", "⚠", "⛔"];
+    let emoji_vec = vec!["🦅", "⛰", "🏕", "🛂", "↗", "🟥", "🔺", "🚢", "❌", "⚠", "⛔"];
 
     emoji_vec
 }
@@ -184,6 +186,7 @@ fn match_verify_type(emoji_used: &str) -> Option<VerifyType> {
         "↗" => return Some(VerifyType::Ordeal),
         "🟥" => return Some(VerifyType::Brotherhood),
         "🔺" => return Some(VerifyType::Vigil),
+        "🚢" => return Some(VerifyType::Quartermaster),
         "❌" => return Some(VerifyType::Close),
         _ => return None,
     }

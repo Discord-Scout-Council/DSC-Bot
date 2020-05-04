@@ -97,6 +97,7 @@ pub fn verify(ctx: &mut Context, msg: &Message) -> CommandResult {
                 ("Camp Staff", "Name tag or shirt", true),
                 ("YPT", "Certificate. PDF is acceptable for this verification", true),
                 ("OA Honor", "Sash or membership card", true),
+                ("Quartermaster", "Medal, Patch, Card, and Certificate", true)
             ]);
             e.footer(|f| {
                 f.text("DSC Bot | Powered by Rusty Development");
