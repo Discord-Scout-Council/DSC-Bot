@@ -113,6 +113,7 @@ pub fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Result<St
         Err(err) => return Err(err.to_string()),
     };
 
+
     let mut verify_db = match verify_type {
         VerifyType::Eagle => get_global_pickle_database("eagle.db"),
         VerifyType::SummitSilver => get_global_pickle_database("summit.db"),
@@ -126,7 +127,7 @@ pub fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Result<St
                 m.embed(|e| {
                     e.title("Verification");
                     e.description("Verification Request Closed.");
-                    e.colour(Colour::RED);
+                    e.colour(Colour::BLUE);
                     e.footer(|f| {
                         f.text("DSC Bot | Powered by Rusty Development");
                         f
@@ -162,9 +163,6 @@ pub fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Result<St
         m
     }) {
         return Err(format!("Error sending verification success message {:?}", err.to_string()));
-    }
-    if let Err(err) = message.delete(http_cache) {
-        return Err(format!("Failed to delete verification request message: {:?}", err.to_string()));
     }
 
     Ok(String::from(""))
