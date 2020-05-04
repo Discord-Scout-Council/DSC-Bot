@@ -90,7 +90,7 @@ pub fn verify(ctx: &mut Context, msg: &Message) -> CommandResult {
     if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
             e.title("Verification");
-            e.description("In order to verify your roles, please send a direct message to the bot, and attach an image of your proof.");
+            e.description("In order to verify your roles, please send a direct message to the bot, and attach an image of your proof.\n\nScoutbook screenshots that clearly show a completed award are valid proof for BSA awards.");
             e.fields(vec![
                 ("Eagle Scout", "Patch, Card, or Certificate", true),
                 ("Summit/Silver", "Patch, Card, or Certificate", true),
