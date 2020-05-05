@@ -84,6 +84,15 @@ pub fn get_discord_banlist() -> Connection {
     conn
 }
 
+pub fn get_badge_db() -> Connection {
+    let conn = Connection::open("data/badges.db").unwrap();
+    conn.execute("CREATE TABLE IF NOT EXISTS badges (
+        userid TEXT NOT NULL,
+        badge TEXT NOT NULL)", params![]).unwrap();
+
+    conn
+}
+
 pub fn init_guild_settings(db: &mut PickleDb) {
     //* Question of the Day
     db.set("modlogs_channel", &0u64);

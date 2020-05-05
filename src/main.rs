@@ -29,7 +29,7 @@ use log::{debug, error, info};
 mod checks;
 mod commands;
 mod util;
-use crate::commands::{general::*, moderation::*, owner::*, settings::*, verification::*};
+use crate::commands::{general::*, moderation::*, owner::*, settings::*, verification::*, badges::*};
 use util::*;
 
 mod prelude;
@@ -65,6 +65,10 @@ struct Settings;
 #[group]
 #[commands(age, verify)]
 struct Verification;
+
+#[group]
+#[commands(addbadge)]
+struct Badges;
 
 struct Handler;
 impl EventHandler for Handler {
@@ -329,6 +333,7 @@ fn main() {
             .group(&MODERATION_GROUP)
             .group(&SETTINGS_GROUP)
             .group(&VERIFICATION_GROUP)
+            .group(&BADGES_GROUP)
             .on_dispatch_error(|context, msg, error| match error {
                 NotEnoughArguments { min, given } => {
                     let mut s = format!("Need {} arguments, only got {}.", min, given);

@@ -18,7 +18,7 @@ use std::cmp::Ordering;
 
 use crate::util::{
     data::{
-        get_discord_banlist, get_global_pickle_database, get_pickle_database, get_strike_database,
+        get_discord_banlist, get_global_pickle_database, get_pickle_database, get_strike_database, get_badge_db
     },
     moderation::*,
 };
@@ -427,6 +427,7 @@ pub fn getstrike(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult 
 pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let db = get_discord_banlist();
     let age_db = get_global_pickle_database("age.db");
+    let badge_db = get_badge_db();
     let target_id = match args.parse::<UserId>() {
         Ok(id) => id,
         Err(err) => {
@@ -439,15 +440,27 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         }
     };
     let age_group = age_db.get::<String>(&target_id.as_u64().to_string());
-    let mut stmt = db
+    let mut dbans_stmt = db
         .prepare("SELECT reason,guild_id,id FROM dbans WHERE userid = (?)")
         .unwrap();
-    let mut ban_result = stmt.query(params![&target_id.as_u64().to_string()])?;
+    let mut ban_result = dbans_stmt.query(params![&target_id.as_u64().to_string()])?;
     let mut is_banned = false;
     if let Ok(o) = ban_result.next() {
         if let Some(_r) = o {
             is_banned = true;
         }
+    }
+
+    // Badges
+    let mut badge_stmt = badge_db.prepare("SELECT badge FROM badges WHERE userid = (?)")?;
+    let mut badge_result = badge_stmt.query(params![&target_id.as_u64().to_string()])?;
+    let mut badges: String = String::from("‎"); // Contains a unicode "blank space" to appease JSON
+    while let Some(r) = badge_result.next().unwrap() {
+        let badge = match r.get::<usize, String>(0) {
+            Ok(s) => s,
+            Err(er) => return Err(CommandError(er.to_string())),
+        };
+        badges.push_str(&format!("{}\n", badge));
     }
 
     // Verified Roles
@@ -538,6 +551,7 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                 ),
                 ("Age Group", age_line, true),
                 ("Verified Roles", verified_roles, true),
+                ("DSC Badges", badges, true),
             ]);
 
             e.footer(|f| {
