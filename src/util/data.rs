@@ -86,9 +86,13 @@ pub fn get_discord_banlist() -> Connection {
 
 pub fn get_badge_db() -> Connection {
     let conn = Connection::open("data/badges.db").unwrap();
-    conn.execute("CREATE TABLE IF NOT EXISTS badges (
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS badges (
         userid TEXT NOT NULL,
-        badge TEXT NOT NULL)", params![]).unwrap();
+        badge TEXT NOT NULL)",
+        params![],
+    )
+    .unwrap();
 
     conn
 }

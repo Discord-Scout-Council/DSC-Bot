@@ -2,8 +2,8 @@
  *   Copyright (c) 2020 Owen Salter <owen@devosmium.xyz>
  *   All rights reserved.
  */
-use crate::prelude::*;
 use crate::checks::*;
+use crate::prelude::*;
 use rusqlite::params;
 
 #[command]
@@ -18,7 +18,7 @@ pub fn addbadge(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
     };
     let target = match args.current().unwrap().parse::<UserId>() {
         Ok(u) => u,
-        Err(e) => return Err(CommandError(e.to_string()))
+        Err(e) => return Err(CommandError(e.to_string())),
     };
     args.advance();
     let badge = args.rest();
@@ -40,7 +40,7 @@ pub fn addbadge(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
             }) {
                 return Err(CommandError(e.to_string()));
             }
-        },
+        }
         Err(e) => return Err(CommandError(e.to_string())),
     };
 

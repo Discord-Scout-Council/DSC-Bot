@@ -7,7 +7,9 @@ use serenity::{
         help_commands,
         macros::{group, help},
         Args, CommandGroup, CommandResult,
-        DispatchError::{CheckFailed, NotEnoughArguments, OnlyForGuilds, TooManyArguments, CommandDisabled},
+        DispatchError::{
+            CheckFailed, CommandDisabled, NotEnoughArguments, OnlyForGuilds, TooManyArguments,
+        },
         HelpOptions, StandardFramework,
     },
     model::{
@@ -29,7 +31,9 @@ use log::{debug, error, info};
 mod checks;
 mod commands;
 mod util;
-use crate::commands::{general::*, moderation::*, owner::*, settings::*, verification::*, badges::*};
+use crate::commands::{
+    badges::*, general::*, moderation::*, owner::*, settings::*, verification::*,
+};
 use util::*;
 
 mod prelude;
@@ -54,7 +58,7 @@ struct Owner;
     syncbans,
     advise,
     modban,
-    bans,
+    bans
 )]
 struct Moderation;
 

@@ -67,7 +67,10 @@ pub fn handle_verification_file(ctx: &Context, msg: &Message) -> Result<(), Stri
         });
         m
     }) {
-        return Err(format!("Error sending successful submission message: {:?}", err.to_string()));
+        return Err(format!(
+            "Error sending successful submission message: {:?}",
+            err.to_string()
+        ));
     }
 
     Ok(())
@@ -114,7 +117,6 @@ pub fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Result<St
         Err(err) => return Err(err.to_string()),
     };
 
-
     let mut verify_db = match verify_type {
         VerifyType::Eagle => get_global_pickle_database("eagle.db"),
         VerifyType::SummitSilver => get_global_pickle_database("summit.db"),
@@ -138,10 +140,17 @@ pub fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Result<St
                 });
                 m
             }) {
-                return Err(format!("Could not send closed request message to {}: {:?}", user_id_str.to_string(), err));
+                return Err(format!(
+                    "Could not send closed request message to {}: {:?}",
+                    user_id_str.to_string(),
+                    err
+                ));
             }
             if let Err(err) = message.delete(http_cache) {
-                return Err(format!("Could not delete verification message: {:?}",err.to_string()));
+                return Err(format!(
+                    "Could not delete verification message: {:?}",
+                    err.to_string()
+                ));
             }
             return Ok(String::from("Request closed"));
         }
@@ -164,7 +173,10 @@ pub fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Result<St
         });
         m
     }) {
-        return Err(format!("Error sending verification success message {:?}", err.to_string()));
+        return Err(format!(
+            "Error sending verification success message {:?}",
+            err.to_string()
+        ));
     }
 
     Ok(String::from(""))

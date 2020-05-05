@@ -18,7 +18,8 @@ use std::cmp::Ordering;
 
 use crate::util::{
     data::{
-        get_discord_banlist, get_global_pickle_database, get_pickle_database, get_strike_database, get_badge_db
+        get_badge_db, get_discord_banlist, get_global_pickle_database, get_pickle_database,
+        get_strike_database,
     },
     moderation::*,
 };
@@ -29,8 +30,7 @@ struct Strike {
     moderator: UserId,
 }
 
-#[derive(Eq)]
-#[derive(Hash)]
+#[derive(Eq, Hash)]
 struct StrikeLog {
     user: UserId,
     reason: String,
@@ -45,7 +45,10 @@ struct DscBan {
 
 impl Ord for StrikeLog {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.case_id.parse::<u32>().unwrap().cmp(&other.case_id.parse::<u32>().unwrap())
+        self.case_id
+            .parse::<u32>()
+            .unwrap()
+            .cmp(&other.case_id.parse::<u32>().unwrap())
     }
 }
 impl PartialOrd for StrikeLog {
@@ -738,7 +741,6 @@ pub fn advise(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
     Ok(())
 }
 
-
 #[command]
 #[description = "Modifies a current strike"]
 #[usage("<Case Number> <Thing to modify> <What to modify it to>")]
@@ -839,7 +841,7 @@ pub fn bans(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                 } else {
                     false
                 }
-            },
+            }
             _ => false,
         };
         let strike = StrikeLog {
@@ -855,7 +857,11 @@ pub fn bans(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 
     for (_i, (s, w)) in bans.iter().enumerate() {
         if *w {
-            result_vec.push((format!("Case #{}", s.case_id), format!("~~{}~~", s.reason.clone()), false));
+            result_vec.push((
+                format!("Case #{}", s.case_id),
+                format!("~~{}~~", s.reason.clone()),
+                false,
+            ));
         } else {
             result_vec.push((format!("Case #{}", s.case_id), s.reason.clone(), false));
         }

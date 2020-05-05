@@ -86,7 +86,6 @@ pub fn age(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[description = "Gives instructions on how to verify your Awards and Advancements"]
 pub fn verify(ctx: &mut Context, msg: &Message) -> CommandResult {
-
     if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
             e.title("Verification");

@@ -4,7 +4,14 @@
  */
 
 use crate::prelude::*;
-use serenity::{http::GuildPagination, model::{id::GuildId, guild::PartialGuild, invite::{Invite, RichInvite}}};
+use serenity::{
+    http::GuildPagination,
+    model::{
+        guild::PartialGuild,
+        id::GuildId,
+        invite::{Invite, RichInvite},
+    },
+};
 
 #[command]
 #[description = "Pings the bot"]
@@ -161,7 +168,9 @@ pub fn servers(ctx: &mut Context, msg: &Message) -> CommandResult {
 
     let mut fields: Vec<(String, String, bool)> = Vec::new();
     for guild in guild_info_list.iter() {
-        if *guild.id.as_u64() == 363354951071694848u64 || *guild.id.as_u64() == 646540745443901469u64 {
+        if *guild.id.as_u64() == 363354951071694848u64
+            || *guild.id.as_u64() == 646540745443901469u64
+        {
             continue;
         }
         let guild_name = &guild.name;
@@ -194,7 +203,11 @@ pub fn servers(ctx: &mut Context, msg: &Message) -> CommandResult {
                 "No invite provided".to_string()
             }
         };
-        fields.push((guild_name.clone(), format!("{}\n{}",owner_name, invite), false));
+        fields.push((
+            guild_name.clone(),
+            format!("{}\n{}", owner_name, invite),
+            false,
+        ));
     }
 
     if let Err(err) = msg.channel_id.send_message(&ctx, |m| {

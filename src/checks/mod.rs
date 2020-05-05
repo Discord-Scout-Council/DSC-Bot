@@ -6,7 +6,10 @@
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::check, Args, CheckResult, CommandOptions},
-    model::{channel::Message, id::{RoleId, GuildId}},
+    model::{
+        channel::Message,
+        id::{GuildId, RoleId},
+    },
 };
 
 #[check]
@@ -30,7 +33,12 @@ pub fn mod_check(
 #[check]
 #[name = "VibeOfficer"]
 #[display_in_help]
-pub fn vibe_check(ctx: &mut Context, msg: &Message, _: &mut Args, _: &CommandOptions) -> CheckResult {
+pub fn vibe_check(
+    ctx: &mut Context,
+    msg: &Message,
+    _: &mut Args,
+    _: &CommandOptions,
+) -> CheckResult {
     let user = &msg.author;
     let vibe_role_id = RoleId(699802594750759043);
     let vibe_guild_id = GuildId(646540745443901469);
