@@ -58,7 +58,9 @@ struct Owner;
     syncbans,
     advise,
     modban,
-    bans
+    bans,
+    raid,
+    unraid,
 )]
 struct Moderation;
 

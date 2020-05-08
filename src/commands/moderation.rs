@@ -8,7 +8,7 @@ use rusqlite::params;
 use serenity::framework::standard::{macros::command, Args, CommandError, CommandResult};
 use serenity::model::id::UserId;
 use serenity::utils::Colour;
-use serenity::{model::channel::Message, model::user::User, prelude::*};
+use serenity::{model::channel::{Message, ChannelType}, model::user::User, prelude::*};
 
 use std::collections::HashMap;
 
@@ -891,5 +891,142 @@ pub fn bans(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         Ok(_msg) => (),
     }
 
+    Ok(())
+}
+
+#[command]
+#[description = "Puts the server into raid mode and alerts DSC"]
+#[only_in(guilds)]
+#[checks(Moderator)]
+#[num_args(0)]
+pub fn raid(ctx: &mut Context, msg: &Message) -> CommandResult {
+    let http_cache = &ctx.http;
+    let guild_arc = match msg.guild(&ctx) {
+        Some(a) => a,
+        None => return Err(CommandError("Could not find message guild".to_string())),
+    };
+    let guild = guild_arc.read();
+    let mut guild_channels = match guild.channels(http_cache) {
+        Ok(h) => h,
+        Err(e) => return Err(CommandError(e.to_string())),
+    };
+
+    for (id, gc) in guild_channels.iter_mut() {
+        match gc.kind {
+            ChannelType::Text => {
+                if let Err(e) = gc.edit(http_cache, |e| {
+                    e.slow_mode_rate(21600);
+                    e
+                }) {
+                    error!("Error in raid: Could not set slowmode on channel {}: {:?}", id.as_u64().to_string(), e);
+                }
+            },
+            _ => continue,
+        }
+    }
+    if let Ok(c) = http_cache.get_channel(crate::prelude::NOTIFY_CHANNEL) {
+        if let Err(e) =c.id().send_message(&ctx, |m| {
+            m.content("@everyone");
+            m.embed(|e| {
+                e.title("RAID IN PROGRESS");
+                e.fields(vec![
+                    ("Server", guild.name.clone(), true),
+                    ("Moderator", format!("<@{}>", *msg.author.id.as_u64()), true),
+                ]);
+                e.footer(|f| {
+                    f.text("DSC Bot | Powered by Rusty Development");
+                    f
+                });
+                e.colour(Colour::RED);
+                e
+            });
+            m
+        }) {
+            return Err(CommandError(format!("Error alerting DSC to raid in {}: {:?}", guild.name.clone(), e.to_string())));
+        }
+    }
+    if let Err(e) = msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Raid Mode");
+            e.description("Successfully set raid mode on the server");
+            e.colour(Colour::RED);
+            e.footer(|f| {
+                f.text("DSC Bot | Powered by Rusty Development");
+                f
+            });
+            e
+        });
+        m
+    }) {
+        return Err(CommandError(e.to_string()));
+    }
+    Ok(())
+}
+
+#[command]
+#[description = "Takes the server out of raid mode and alerts DSC"]
+#[only_in(guilds)]
+#[checks(Moderator)]
+#[num_args(0)]
+pub fn unraid(ctx: &mut Context, msg: &Message) -> CommandResult {
+    let http_cache = &ctx.http;
+    let guild_arc = match msg.guild(&ctx) {
+        Some(a) => a,
+        None => return Err(CommandError("Could not find message guild".to_string())),
+    };
+    let guild = guild_arc.read();
+    let mut guild_channels = match guild.channels(http_cache) {
+        Ok(h) => h,
+        Err(e) => return Err(CommandError(e.to_string())),
+    };
+
+    for (id, gc) in guild_channels.iter_mut() {
+        match gc.kind {
+            ChannelType::Text => {
+                if let Err(e) = gc.edit(http_cache, |e| {
+                    e.slow_mode_rate(0);
+                    e
+                }) {
+                    error!("Error in unraid: Could not remove slowmode on channel {}: {:?}", id.as_u64().to_string(), e);
+                }
+            },
+            _ => continue,
+        }
+    }
+    if let Ok(c) = http_cache.get_channel(crate::prelude::NOTIFY_CHANNEL) {
+        if let Err(e) =c.id().send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Raid Mode Lifted");
+                e.fields(vec![
+                    ("Server", guild.name.clone(), true),
+                    ("Moderator", format!("<@{}>", *msg.author.id.as_u64()), true),
+                ]);
+                e.footer(|f| {
+                    f.text("DSC Bot | Powered by Rusty Development");
+                    f
+                });
+                e.colour(Colour::BLUE);
+                e
+            });
+            m
+        }) {
+            return Err(CommandError(format!("Error alerting DSC to unraid in {}: {:?}", guild.name.clone(), e.to_string())));
+        }
+    }
+    if let Err(e) = msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Raid Mode");
+            e.description("Successfully removed raid mode on the server");
+            e.colour(Colour::BLUE);
+            e.footer(|f| {
+                f.text("DSC Bot | Powered by Rusty Development");
+                f
+            });
+            e
+        });
+        m
+    }) {
+        return Err(CommandError(e.to_string()));
+    }
     Ok(())
 }
