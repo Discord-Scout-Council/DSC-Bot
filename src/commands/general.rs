@@ -31,7 +31,7 @@ pub fn about(ctx: &mut Context, msg: &Message) -> CommandResult {
             e.title("DSC Bot");
             e.description("A Discord Bot for Discord Scout Council");
             e.field("Creator", "<@118455061222260736>", true);
-            e.field("Report an Issue or Suggestion", "cbotsuggest <Suggestion>", true);
+            e.field("Report an Issue or Suggestion", "&botsuggest <Suggestion>", true);
 
             e.thumbnail("https://cdn.discordapp.com/attachments/705877153513865328/705877361304010793/DSC_Logo.png");
 
@@ -145,6 +145,60 @@ pub fn privacy(ctx: &mut Context, msg: &Message) -> CommandResult {
         Err(err) => error!("Error sending privacy information: {:?}", err),
         _ => ()
     }
+
+    Ok(())
+}
+
+
+#[command]
+#[description = "Provides F@H Leaderboard for the DSC F@H Team."]
+pub fn leaderboard(ctx: &mut Context, msg: &Message) -> CommandResult {
+    msg.channel_id.send_message(&ctx.http, |m| {
+        let mut res = reqwest::get("https://api.foldingathome.org/team/262889/members")?;
+        let mut body = String::new();
+        res.read_to_string(&mut body)?;
+        m.embed(|e| {
+            e.title("DSC F@H Stats (Points)");
+            
+            for token in body.split("\"],[\""){
+                let tokens:Vec<&str>= token.split("\",\"").collect();
+                    println!("firstName is {}",tokens[0]);
+                    println!("lastname is {}",tokens[1]);
+                    println!("company is {}",tokens[2]);
+                    e.field(tokens[0], format!("Rank: {} Points: {} WUs: {}", tokens[2],tokens[3],tokens[4]), False);
+            }
+
+            e.thumbnail("https://apps.foldingathome.org/awards?team=262889");
+
+            e
+        });
+        m
+    })?;
+
+    Ok(())
+}
+
+#[command]
+#[description = "Provides F@H Stats for the DSC F@H Team."]
+pub fn teamstats(ctx: &mut Context, msg: &Message) -> CommandResult {
+    msg.channel_id.send_message(&ctx.http, |m| {
+        let mut res = reqwest::get("https://api.foldingathome.org/team/262889")?;
+        let mut body = String::new();
+        res.read_to_string(&mut body)?;
+        let tokens:Vec<&str>= token.split(",").collect();
+        m.embed(|e| {
+            e.title("DSC F@H Stats");
+            e.field("Total WUs", tokens[6], true);
+            e.field("Total Points", tokens[5], true);
+            e.field("Team Rank", tokens[7], true);
+
+            e.thumbnail("https://apps.foldingathome.org/awards?team=262889&type=wus");
+
+            e
+        });
+
+        m
+    })?;
 
     Ok(())
 }
