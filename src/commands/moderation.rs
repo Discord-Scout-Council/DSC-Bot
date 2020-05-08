@@ -994,7 +994,7 @@ pub fn unraid(ctx: &mut Context, msg: &Message) -> CommandResult {
             });
             m
         }) {
-            return Err(CommandError(format!("Error alerting DSC to raid in {}: {:?}", guild.name.clone(), e.to_string())));
+            return Err(CommandError(format!("Error alerting DSC to unraid in {}: {:?}", guild.name.clone(), e.to_string())));
         }
     }
     Ok(())
