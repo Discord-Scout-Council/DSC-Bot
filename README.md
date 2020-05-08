@@ -5,7 +5,7 @@ The DSC Bot is designed to assist with moderation across server by having a shar
 ## Features
 - Moderation
     - Strikes (tracked per server)
-    - Advisories (Stikes, but global)
+    - Advisories (Strikes, but global)
     - Global ban list
     - Wordfilter to remove message containing banend words
     - Ability to view reasons for strikes, advisories, and bans.
