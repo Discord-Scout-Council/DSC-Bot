@@ -215,6 +215,7 @@ dependencies = [
  "rand 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "rusqlite 0.23.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serenity 0.8.6 (git+https://github.com/Lakelezz/serenity.git?branch=await)",
+ "tokio 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
