@@ -28,6 +28,8 @@ use rusqlite::params;
 
 use log::{debug, error, info};
 
+extern crate reqwest;
+
 mod checks;
 mod commands;
 mod util;
