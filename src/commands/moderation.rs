@@ -926,6 +926,7 @@ pub fn raid(ctx: &mut Context, msg: &Message) -> CommandResult {
     }
     if let Ok(c) = http_cache.get_channel(crate::prelude::NOTIFY_CHANNEL) {
         if let Err(e) =c.id().send_message(&ctx, |m| {
+            m.content("@everyone");
             m.embed(|e| {
                 e.title("RAID IN PROGRESS");
                 e.fields(vec![
