@@ -4,7 +4,6 @@
  */
 
 use crate::prelude::*;
-extern crate reqwest;
 use std::io::Read;
 use serenity::{
     http::GuildPagination,
