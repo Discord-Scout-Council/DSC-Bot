@@ -12,4 +12,4 @@ pub use serenity::framework::standard::{macros::command, Args, CommandError, Com
 pub use serenity::model::id::UserId;
 pub use serenity::utils::Colour;
 pub use serenity::{model::channel::Message, model::guild::Member, prelude::*};
-use rusqlite::params;
+pub use rusqlite::params;

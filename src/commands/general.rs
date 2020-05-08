@@ -13,6 +13,10 @@ use serenity::{
     },
 };
 
+struct Ban {
+    id: u32,
+}
+
 #[command]
 #[description = "Pings the bot"]
 pub fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
@@ -225,6 +229,61 @@ pub fn servers(ctx: &mut Context, msg: &Message) -> CommandResult {
     }) {
         return Err(CommandError(err.to_string()));
     }
+
+    Ok(())
+}
+
+#[command]
+#[description = "Displays statistics about the bot"]
+pub fn botstats(ctx: &mut Context, msg: &Message) -> CommandResult {
+    let bans_db = get_discord_banlist();
+    let mut bans_stmt = match bans_db.prepare("SELECT id FROM dbans") {
+        Ok(s) => s,
+        Err(err) => return Err(CommandError(err.to_string())),
+    };
+    let rows = bans_stmt.query_map(params![], |row| {
+        Ok(Ban{
+            id: row.get(0).unwrap(),
+        })
+    })?;
+
+    let mut total_bans = 0;
+    for r in rows {
+        total_bans + 1;
+    }
+    let http_cache = &ctx.http;
+    let mut total_members = 0u32;
+    let mut total_channels = 0u32;
+    let guilds = match http_cache.get_guilds(&GuildPagination::After(GuildId(0)), 100) {
+        Ok(v) => v,
+        Err(err) => return Err(CommandError(err.to_string())),
+    };
+
+    for g in guilds.iter() {
+        let guild = http_cache.get_guild(*g.id.as_u64())?;
+        total_members = total_members + guild.members(&ctx, None, None).unwrap().len() as u32;
+        total_channels = total_channels + guild.channels(&ctx).unwrap().len() as u32;
+    }
+
+    msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Bot Statistics");
+            e.description("Fun stats about the bot, to give an idea of what it's currently doing.");
+            e.fields(vec![
+                ("Total Members:", total_members.to_string(), true),
+                ("Total Channels", total_channels.to_string(), true),
+                ("Total Bans", total_bans.to_string(), true),
+            ]);
+            e.colour(Colour::BLUE);
+            e.footer(|f| {
+                f.text("DSC Bot | Powered by Rusty Development");
+                f
+            });
+            e
+        });
+        m
+    })?;
+
 
     Ok(())
 }
