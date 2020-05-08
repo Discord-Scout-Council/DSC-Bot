@@ -32,15 +32,20 @@ mod checks;
 mod commands;
 mod util;
 use crate::commands::{
-    badges::*, general::*, moderation::*, owner::*, settings::*, verification::*,
+    badges::*, general::*, moderation::*, owner::*, settings::*, verification::*, folding::*,
 };
 use util::*;
 
 mod prelude;
 
 #[group]
-#[commands(ping, about, serverinfo, botsuggest, privacy, servers, teamstats,leaderboard)]
+#[commands(ping, about, serverinfo, botsuggest, privacy, servers)]
 struct General;
+
+
+#[group]
+#[commands(fahteamstats, fahleaderboard)]
+struct Folding;
 
 #[group]
 #[commands(restart, initcache)]
