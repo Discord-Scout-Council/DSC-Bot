@@ -944,6 +944,21 @@ pub fn raid(ctx: &mut Context, msg: &Message) -> CommandResult {
             return Err(CommandError(format!("Error alerting DSC to raid in {}: {:?}", guild.name.clone(), e.to_string())));
         }
     }
+    if let Err(e) = msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Raid Mode");
+            e.description("Successfully set raid mode on the server");
+            e.colour(Colour::RED);
+            e.footer(|f| {
+                f.text("DSC Bot | Powered by Rusty Development");
+                f
+            });
+            e
+        });
+        m
+    }) {
+        return Err(CommandError(e.to_string()));
+    }
     Ok(())
 }
 
@@ -996,6 +1011,21 @@ pub fn unraid(ctx: &mut Context, msg: &Message) -> CommandResult {
         }) {
             return Err(CommandError(format!("Error alerting DSC to unraid in {}: {:?}", guild.name.clone(), e.to_string())));
         }
+    }
+    if let Err(e) = msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Raid Mode");
+            e.description("Successfully removed raid mode on the server");
+            e.colour(Colour::BLUE);
+            e.footer(|f| {
+                f.text("DSC Bot | Powered by Rusty Development");
+                f
+            });
+            e
+        });
+        m
+    }) {
+        return Err(CommandError(e.to_string()));
     }
     Ok(())
 }
