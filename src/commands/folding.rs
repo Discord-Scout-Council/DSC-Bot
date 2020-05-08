@@ -17,7 +17,7 @@ use serenity::{
 
 #[command]
 #[description = "Provides F@H Leaderboard for the DSC F@H Team."]
-pub fn leaderboard(ctx: &mut Context, msg: &Message) -> CommandResult {
+pub fn fahleaderboard(ctx: &mut Context, msg: &Message) -> CommandResult {
     msg.channel_id.send_message(&ctx.http, |m| {
         let mut res = reqwest::get("https://api.foldingathome.org/team/262889/members")?;
         let mut body = String::new();
@@ -45,7 +45,7 @@ pub fn leaderboard(ctx: &mut Context, msg: &Message) -> CommandResult {
 
 #[command]
 #[description = "Provides F@H Stats for the DSC F@H Team."]
-pub fn teamstats(ctx: &mut Context, msg: &Message) -> CommandResult {
+pub fn fahteamstats(ctx: &mut Context, msg: &Message) -> CommandResult {
     msg.channel_id.send_message(&ctx.http, |m| {
         let mut res = reqwest::get("https://api.foldingathome.org/team/262889")?;
         let mut body = String::new();
