@@ -3,9 +3,8 @@
  *   All rights reserved.
  */
 
-use crate::prelude::*;
-extern crate reqwest;
 use std::io::Read;
+use crate::prelude::*;
 use serenity::{
     http::GuildPagination,
     model::{
