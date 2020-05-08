@@ -26,9 +26,6 @@ pub fn fahleaderboard(ctx: &mut Context, msg: &Message) -> CommandResult {
             
             for token in body.split("\"],[\""){
                 let tokens:Vec<&str>= token.split("\",\"").collect();
-                    println!("firstName is {}",tokens[0]);
-                    println!("lastname is {}",tokens[1]);
-                    println!("company is {}",tokens[2]);
                     e.field(tokens[0], format!("Rank: {} Points: {} WUs: {}", tokens[2],tokens[3],tokens[4]), False);
             }
 
