@@ -3,7 +3,7 @@
  *   All rights reserved.
  */
 
-// pub mod badges;
+pub mod badges;
 pub mod general;
 pub mod moderation;
 pub mod owner;
