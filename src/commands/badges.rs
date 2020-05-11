@@ -46,3 +46,57 @@ pub fn addbadge(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
 
     Ok(())
 }
+
+
+#[command]
+#[description = "Removes a badge from a user"]
+#[usage("<User> <Badge>")]
+#[checks(VibeOfficer)]
+pub fn delbadge(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    let badge_db = get_badge_db();
+    let target_user = args.current().unwrap().parse::<UserId>()?;
+    args.advance();
+    let target_badge = args.rest();
+    
+    let mut badge_stmt = badge_db.prepare("DELETE FROM badges WHERE userid = ?1 AND badge = ?2")?;
+    let num_changed = badge_stmt.execute(params![target_user.as_u64().to_string(), target_badge])?;
+
+    match num_changed {
+        0 => {
+            if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
+                m.embed(|e| {
+                    e.title("Badge Subsystem");
+                    e.description("Error removing badge. Either you provided an invalid badge, or the user does not have the badge.");
+                    e.colour(Colour::RED);
+                    e.footer(|f| {
+                        f.text("DSC Bot | Powered by Rusty Development");
+                        f
+                    });
+                    e
+                });
+                m
+            }) {
+                return Err(CommandError(err.to_string()));
+            }
+        },
+        _ => {
+            if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
+                m.embed(|e| {
+                    e.title("Badge Subsystem");
+                    e.description("Successfully removed badge");
+                    e.colour(Colour::DARK_GREEN);
+                    e.footer(|f| {
+                        f.text("DSC Bot | Powered by Rusty Development");
+                        f
+                    });
+                    e
+                });
+                m
+            }) {
+                return Err(CommandError(err.to_string()));
+            }
+        },
+    }
+
+    Ok(())
+}

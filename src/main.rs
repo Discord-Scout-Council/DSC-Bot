@@ -73,7 +73,7 @@ struct Settings;
 struct Verification;
 
 #[group]
-#[commands(addbadge)]
+#[commands(addbadge, delbadge)]
 struct Badges;
 
 struct Handler;
