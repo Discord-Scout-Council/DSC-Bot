@@ -57,6 +57,7 @@ async fn addbadge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 #[description = "Removes a badge from a user"]
 #[usage("<User> <Badge>")]
 #[checks(VibeOfficer)]
+#[min_args(2)]
 async fn delbadge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let badge_db = get_badge_db();
     let mut num_changed: usize;
