@@ -7,11 +7,12 @@ use serenity::{
     http::Http,
     framework::standard::{
         help_commands,
-        macros::{group, help},
+        macros::{group, help, hook},
         Args, CommandGroup, CommandResult,
         DispatchError::{
             CheckFailed, CommandDisabled, NotEnoughArguments, OnlyForGuilds, TooManyArguments,
         },
+        DispatchError,
         HelpOptions, StandardFramework,
     },
     model::{
@@ -297,6 +298,97 @@ impl EventHandler for Handler {
     }
 }
 
+#[hook]
+async fn on_dispatch_error(ctx: &Context, msg: &Message, error: DispatchError) {
+
+    match error {
+        NotEnoughArguments { min, given } => {
+            let mut s = format!("Need {} arguments, only got {}.", min, given);
+            s.push_str(&" Try using `help <command>` to get usage.");
+
+            match msg.channel_id.say(&ctx, &s).await {
+                Err(err) => error!("Error responding to invalid arguments: {:?}", err),
+                Ok(_msg) => (),
+            }
+        }
+        TooManyArguments { max, given } => {
+            let mut s = format!("Too many arguments. Expected {}, got {}.", max, given);
+            s.push_str(" Try using `help <command>` to get usage.");
+
+            match msg.channel_id.say(&ctx, &s).await {
+                Err(err) => error!("Error responding to invalid arguments: {:?}", err),
+                Ok(_msg) => (),
+            }
+        }
+        CheckFailed(stri, _reason) => {
+            info!("{}", stri);
+            info!("{} failed to pass check {}", &msg.author.name, stri);
+
+            match msg
+                .channel_id
+                .say(&ctx, "You do not have permission to use this command!").await
+            {
+                Err(err) => error!("Error responding to failed check: {:?}", err),
+                Ok(_msg) => (),
+            }
+        }
+        OnlyForGuilds => {
+            info!(
+                "{} tried to use a guild-only command in DMs",
+                &msg.author.name
+            );
+            match msg
+                .channel_id
+                .say(&ctx, "Please run this command in a Server!").await
+            {
+                Err(err) => {
+                    error!("Error sending invalid context msg to {}", &msg.author.name)
+                }
+                _ => (),
+            }
+        },
+        CommandDisabled(stri) => {
+            if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
+                m.embed(|e| {
+                    e.title("Command Error");
+                    e.description("That command has been disabled.");
+                    e.colour(Colour::RED);
+                    e.footer(|f| {
+                        f.text("DSC Bot | Powered by Rusty Development");
+                        f
+                    });
+                    e
+                });
+                m
+            }).await {
+                error!("Error sending disabled command message to {}", &msg.author.name);
+            }
+        }
+        _ => error!("Unhandled dispatch error."),
+    }
+}
+
+#[hook]
+async fn after(ctx: &Context, msg: &Message, cmd_name: &str, error: CommandResult) {
+if let Err(err) = error {
+    error!("Error in {}: {:?}", cmd_name, err);
+    if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Command Error");
+            e.description("There was an error running the command. Please report to DSC Tech Team");
+            e.footer(|f| {
+                f.text("DSC Bot | Powered by Rusty Development");
+                f
+            });
+            e.colour(Colour::RED);
+            e
+        });
+        m
+    }).await {
+        error!("Error sending error message {:?}", err);
+    }
+}
+}
 
 #[help]
 async fn help(
@@ -343,6 +435,8 @@ async fn main() {
         .owners(owners)
         .prefix(&env::var("DISCORD_PREFIX").unwrap())
     )
+    .after(after)
+    .on_dispatch_error(on_dispatch_error)
     .group(&GENERAL_GROUP)
     .group(&MODERATION_GROUP)
     .group(&OWNER_GROUP)
@@ -350,6 +444,7 @@ async fn main() {
     .group(&VERIFICATION_GROUP)
     .group(&BADGES_GROUP)
     .help(&HELP);
+
 
     let mut client = Client::new(&token)
         .framework(framework)
