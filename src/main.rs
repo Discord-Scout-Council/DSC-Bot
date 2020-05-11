@@ -36,7 +36,7 @@ mod util;
 /*use crate::commands::{
     badges::*, general::*, moderation::*, owner::*, settings::*, verification::*,
 };*/
-use crate::commands::{general::*, moderation::*};
+use crate::commands::{general::*, moderation::*, owner::*};
 use util::*;
 
 mod prelude;
@@ -44,11 +44,11 @@ mod prelude;
 #[group]
 #[commands(ping, about, serverinfo, botsuggest, privacy)]
 struct General;
-/*
+
 #[group]
 #[commands(restart, initcache)]
 struct Owner;
-*/
+
 
 #[group]
 #[commands(
@@ -136,6 +136,7 @@ async fn main() {
     )
     .group(&GENERAL_GROUP)
     .group(&MODERATION_GROUP)
+    .group(&OWNER_GROUP)
     .help(&HELP);
 
     let mut client = Client::new(&token)

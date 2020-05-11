@@ -12,23 +12,22 @@ use crate::prelude::*;
 #[command]
 #[description = "Restarts the bot"]
 #[owners_only]
-pub fn restart(ctx: &mut Context, msg: &Message) -> CommandResult {
+async fn restart(ctx: &Context, msg: &Message) -> CommandResult {
     match msg
         .channel_id
-        .say(&ctx.http, "Restarting bot, and applying new changes")
+        .say(&ctx.http, "Restarting bot, and applying new changes").await
     {
         Err(err) => error!("Error sending restart response: {:?}", err),
         Ok(_msg) => (),
     }
     warn!("{} is restarting the bot!", &msg.author.name);
-    ctx.shard.shutdown_clean();
     std::process::exit(0);
 }
 
 #[command]
 #[description = "Initializes the Guild Cache"]
 #[owners_only]
-pub fn initcache(ctx: &mut Context, msg: &Message) -> CommandResult {
+async fn initcache(ctx: &Context, msg: &Message) -> CommandResult {
     let mut guild_cache = get_pickle_database(msg.guild_id.unwrap().as_u64(), &"cache.db");
     if let Err(err) = guild_cache.set("current_qotd", &0) {
         error!(
@@ -52,7 +51,7 @@ pub fn initcache(ctx: &mut Context, msg: &Message) -> CommandResult {
         });
 
         m
-    }) {
+    }).await {
         error!(
             "Error responding to {} cache init: {:?}",
             msg.guild_id.unwrap().as_u64(),
