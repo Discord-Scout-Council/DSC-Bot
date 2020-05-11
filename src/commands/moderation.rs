@@ -68,7 +68,7 @@ impl PartialEq for StrikeLog {
 #[usage("<@User> <Reason>")]
 #[min_args(2)]
 #[checks(Moderator)]
-pub fn strike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn strike(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let strike_conn = get_strike_database(&msg.guild_id.unwrap().as_u64());
     let strike = Strike {
         user: args.parse::<UserId>().unwrap(),
@@ -86,7 +86,7 @@ pub fn strike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
         )
         .unwrap();
 
-    msg.channel_id.say(&ctx.http, "Struck the user.").unwrap();
+    msg.channel_id.say(&ctx.http, "Struck the user.").await.unwrap();
     let action = ModAction {
         target: strike.user,
         moderator: msg.author.clone(),
@@ -105,41 +105,44 @@ pub fn strike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 #[only_in(guilds)]
 #[min_args(1)]
 #[checks(Moderator)]
-pub fn strikelog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+async fn strikelog(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let strike_conn = get_strike_database(&msg.guild_id.unwrap().as_u64());
     let target_user = args.parse::<UserId>().unwrap();
-
+    let mut strikes: Vec<StrikeLog> = Vec::new();
+{
     let mut stmt = strike_conn
         .prepare("SELECT reason,moderator,id FROM strikes WHERE userid = (?)")
         .unwrap();
+
     let mut rows = stmt
         .query(params![target_user.as_u64().to_string()])
         .unwrap();
 
-    let mut strikes: Vec<StrikeLog> = Vec::new();
+    
     while let Some(row) = rows.next().unwrap() {
-        let reason = row.get::<usize, String>(0);
-        let moderator = row.get::<usize, String>(1);
-        let case_id = row.get::<usize, u32>(2);
+        let reason = row.get::<usize, String>(0).unwrap().clone();
+        let moderator = row.get::<usize, String>(1).unwrap().clone();
+        let case_id = row.get::<usize, u32>(2).unwrap().clone();
         let strike = StrikeLog {
             user: target_user,
-            moderator: moderator.unwrap().parse::<u64>().unwrap().into(),
-            reason: reason.unwrap(),
-            case_id: case_id.unwrap().to_string(),
+            moderator: moderator.parse::<u64>().unwrap().into(),
+            reason: reason,
+            case_id: case_id.to_string(),
         };
         strikes.push(strike);
     }
-
+}
     let mut result_vec: Vec<(String, String, bool)> = Vec::new();
 
     for (_i, r) in strikes.iter().enumerate() {
         result_vec.push((format!("Case #{}", r.case_id), r.reason.clone(), false));
     }
 
-    match msg.channel_id.send_message(&ctx.http, |m| {
+    let target_user_name = &target_user.to_user(&ctx.http).await.unwrap().name;
+    msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
             let mut title = String::from("Strikes for ");
-            title.push_str(&target_user.to_user(&ctx).unwrap().name);
+            title.push_str(&target_user_name);
             e.title(title);
 
             e.fields(result_vec);
@@ -155,18 +158,15 @@ pub fn strikelog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult 
         });
 
         m
-    }) {
-        Err(err) => error!("Error sending strike log: {:?}", err),
-        Ok(_msg) => (),
-    }
+    }).await?;
 
-    Ok(())
+    return Ok(());
 }
 
 #[command]
 #[description = "Manages the bad words filter"]
 #[sub_commands(add)]
-pub fn wordfilter(_ctx: &mut Context, _msg: &Message) -> CommandResult {
+async fn wordfilter(_ctx: &Context, _msg: &Message) -> CommandResult {
     Ok(())
 }
 
@@ -174,8 +174,8 @@ pub fn wordfilter(_ctx: &mut Context, _msg: &Message) -> CommandResult {
 #[description = "Adds a word to the bad words list"]
 #[checks(Moderator)]
 #[sub_commands(global)]
-pub fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    msg.reply(&ctx, "Called word management")?;
+async fn add(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    msg.reply(&ctx.http, "Called word management").await?;
     let guild = &msg.guild_id.unwrap();
     let mut db = get_pickle_database(guild.as_u64(), "banned_words.db");
     match db.get::<i32>(&args.rest()) {
@@ -190,7 +190,7 @@ pub fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                 });
 
                 m
-            })?;
+            }).await?;
         }
         None => {
             if let Err(err) = db.set(&args.rest(), &1) {
@@ -210,7 +210,7 @@ pub fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                 });
 
                 m
-            })?;
+            }).await?;
         }
     }
 
@@ -220,7 +220,7 @@ pub fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[description = "Adds a word to the global list"]
 #[owners_only]
-pub fn global(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+async fn global(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let mut db = get_global_pickle_database("banned_words.db");
 
     db.set(args.rest(), &1)?;
@@ -244,7 +244,7 @@ pub fn global(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         });
 
         m
-    })?;
+    }).await?;
 
     warn!("Added a global banned word: {}", args.rest());
 
@@ -256,7 +256,7 @@ pub fn global(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[usage("<User>")]
 #[checks(Moderator)]
 #[only_in(guilds)]
-pub fn clearstrikes(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+async fn clearstrikes(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let strikes = get_strike_database(&msg.guild_id.unwrap().as_u64());
     let target = args.parse::<UserId>().unwrap();
     strikes.execute(
@@ -273,12 +273,14 @@ pub fn clearstrikes(ctx: &mut Context, msg: &Message, args: Args) -> CommandResu
     };
     log_mod_action(action, ctx);
 
+    let target_user_name = target.to_user(&ctx.http).await.unwrap().name;
+
     match msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
             e.title("Moderation Subsystem");
             e.description(format!(
                 "Cleared strikes for {}",
-                target.to_user(&ctx).unwrap().name
+                target_user_name
             ));
             e.footer(|f| {
                 f.text(format!("Requested by {}", &msg.author.name));
@@ -290,7 +292,7 @@ pub fn clearstrikes(ctx: &mut Context, msg: &Message, args: Args) -> CommandResu
         });
 
         m
-    }) {
+    }).await {
         Err(err) => error!("Error sending clearstrike response: {:?}", err),
         Ok(_msg) => (),
     }
@@ -304,7 +306,7 @@ pub fn clearstrikes(ctx: &mut Context, msg: &Message, args: Args) -> CommandResu
 #[min_args(3)]
 #[checks(Moderator)]
 #[only_in(guilds)]
-pub fn modstrike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn modstrike(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let strikes = get_strike_database(&msg.guild_id.unwrap().as_u64());
     let case_id = &args.single::<u32>()?;
     let modify_thing = &args.single::<String>().unwrap().to_lowercase();
@@ -332,7 +334,7 @@ pub fn modstrike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
                 e
             });
             m
-        })?;
+        }).await?;
     } else if modify_thing == "withdraw" {
         strikes.execute(
             "UPDATE strikes SET is_withdrawn = '1' WHERE id = ?1",
@@ -350,7 +352,7 @@ pub fn modstrike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
                 e
             });
             m
-        })?;
+        }).await?;
     } else {
         msg.channel_id.send_message(&ctx, |m| {
             m.embed(|e| {
@@ -364,7 +366,7 @@ pub fn modstrike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
                 e
             });
             m
-        })?;
+        }).await?;
     }
 
     Ok(())
@@ -375,32 +377,45 @@ pub fn modstrike(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
 #[num_args(1)]
 #[checks(Moderator)]
 #[only_in(guilds)]
-pub fn getstrike(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+async fn getstrike(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let mut user_id: UserId;
+    let mut moderator_id: UserId;
+    let mut reason: String;
+    let mut is_withdrawn: bool;
+    {
     let strikes = get_strike_database(&msg.guild_id.unwrap().as_u64());
     let mut stmt =
         strikes.prepare("SELECT userid,moderator,reason,is_withdrawn FROM strikes WHERE id = ?")?;
     let mut rows = stmt.query(params![args.current()])?;
     let row = rows.next().unwrap().unwrap();
-    let user_id: UserId = row
+    user_id = row
         .get::<usize, String>(0)
         .unwrap()
         .parse::<u64>()
         .unwrap()
         .into();
-    let user: User = user_id.to_user(&ctx)?;
-    let moderator_id: UserId = row
+    moderator_id = row
         .get::<usize, String>(1)
         .unwrap()
         .parse::<u64>()
         .unwrap()
         .into();
-    let moderator = moderator_id.to_user(&ctx)?;
-    let reason = row.get::<usize, String>(2).unwrap();
-    let is_withdrawn = match row.get::<usize, String>(3).unwrap().parse::<i32>().unwrap() {
-        1 => true,
-        _ => false,
+    reason = row.get::<usize, String>(2).unwrap().clone();
+    
+        is_withdrawn = match row.get::<usize, String>(3).unwrap().parse::<i32>().unwrap() {
+            1 => true,
+            _ => false,
+        };
+
+    }
+    let user = match user_id.to_user(&ctx.http).await {
+        Ok(u) => u,
+        Err(err) => return Err(CommandError(err.to_string())),
     };
 
+    let moderator = moderator_id.to_user(&ctx.http).await?;
+    
+    
     msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
             e.title("Moderation Case");
@@ -417,9 +432,8 @@ pub fn getstrike(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult 
             e
         });
         m
-    })?;
-
-    Ok(())
+    }).await;
+    return Ok(());
 }
 
 #[command]
@@ -427,7 +441,7 @@ pub fn getstrike(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult 
 #[description = "Checks a user against the banlist and returns other information"]
 #[num_args(1)]
 #[only_in(guilds)]
-pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+async fn runuser(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let db = get_discord_banlist();
     let age_db = get_global_pickle_database("age.db");
     let badge_db = get_badge_db();
@@ -442,22 +456,27 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             return Err(CommandError(err.to_string()));
         }
     };
+
+    let mut badges: String = String::from("‎"); // Contains a unicode "blank space" to appease JSON
+    let mut is_banned = false;
+
     let age_group = age_db.get::<String>(&target_id.as_u64().to_string());
+    {
     let mut dbans_stmt = db
         .prepare("SELECT reason,guild_id,id FROM dbans WHERE userid = (?)")
         .unwrap();
     let mut ban_result = dbans_stmt.query(params![&target_id.as_u64().to_string()])?;
-    let mut is_banned = false;
     if let Ok(o) = ban_result.next() {
         if let Some(_r) = o {
             is_banned = true;
         }
     }
+}
 
+    {
     // Badges
     let mut badge_stmt = badge_db.prepare("SELECT badge FROM badges WHERE userid = (?)")?;
     let mut badge_result = badge_stmt.query(params![&target_id.as_u64().to_string()])?;
-    let mut badges: String = String::from("‎"); // Contains a unicode "blank space" to appease JSON
     while let Some(r) = badge_result.next().unwrap() {
         let badge = match r.get::<usize, String>(0) {
             Ok(s) => s,
@@ -465,7 +484,7 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         };
         badges.push_str(&format!("{}\n", badge));
     }
-
+}
     // Verified Roles
     //* Create the pickledb instance here, and then add it to the db_map later with the right key.
     let eagle_db = get_global_pickle_database("eagle.db");
@@ -497,11 +516,11 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         }
     }
 
-    let target_user = &ctx.http.get_user(*target_id.as_u64())?;
-    let guild = &ctx.http.get_guild(*msg.guild_id.unwrap().as_u64())?;
+    let target_user = &ctx.http.get_user(*target_id.as_u64()).await?;
+    let guild = &ctx.http.get_guild(*msg.guild_id.unwrap().as_u64()).await?;
     let user_name = &target_user.name;
     let user_id = target_id.as_u64();
-    let member = guild.member(&ctx, *user_id)?;
+    let member = guild.member(&ctx.http, *user_id).await?;
     let joined_guild_datetime = member.joined_at.unwrap();
     let joined_guild_date = joined_guild_datetime.date().naive_utc();
     let joined_guild_time = joined_guild_datetime.time();
@@ -565,7 +584,7 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             e
         });
         m
-    }) {
+    }).await {
         error!("Error sending `runuser` output: {:?}", err);
         return Err(CommandError(err.to_string()));
     }
@@ -577,8 +596,10 @@ pub fn runuser(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[description = "Sends the server's banlist to the DSC database"]
 #[only_in(guilds)]
 #[checks(Moderator)]
-pub fn syncbans(ctx: &mut Context, msg: &Message) -> CommandResult {
+async fn syncbans(ctx: &Context, msg: &Message) -> CommandResult {
     let db = get_discord_banlist();
+    let mut current_dsc_bans: Vec<DscBan> = Vec::new();
+    {
     let mut stmt = db.prepare("SELECT userid,reason FROM dbans WHERE guild_id = ?1")?;
     debug!("Getting current bans");
     let res = stmt.query_map(
@@ -590,14 +611,13 @@ pub fn syncbans(ctx: &mut Context, msg: &Message) -> CommandResult {
             })
         },
     )?;
-    let mut current_dsc_bans: Vec<DscBan> = Vec::new();
     for b in res {
         current_dsc_bans.push(b.unwrap());
     }
-
+    }
     debug!("Getting guild bans");
-    let guild_bans = &ctx.http.get_bans(*msg.guild_id.unwrap().as_u64())?;
-
+    let guild_bans = &ctx.http.get_bans(*msg.guild_id.unwrap().as_u64()).await?;
+    {
     let mut insert_stmt = db
         .prepare("INSERT INTO dbans(userid,reason,guild_id,is_withdrawn) VALUES (?1, ?2, ?3, 0)")?;
 
@@ -623,9 +643,9 @@ pub fn syncbans(ctx: &mut Context, msg: &Message) -> CommandResult {
             insert_stmt.execute(params![b_userid.to_string(), reason, b_guildid.to_string()])?;
         }
     }
+}
     msg.channel_id.send_message(&ctx, |m| {
-        m.embed(|e| {
-            e.title("DSC Banlist");
+        m.embed(|e| {let mut is_banned = false;
             e.description("Finished syncing bans to the DSC Banlist");
             e.colour(Colour::DARK_GREEN);
             e.footer(|f| {
@@ -635,9 +655,9 @@ pub fn syncbans(ctx: &mut Context, msg: &Message) -> CommandResult {
             e
         });
         m
-    })?;
+    }).await?;
 
-    let guild = &ctx.http.get_guild(*msg.guild_id.unwrap().as_u64()).unwrap();
+    let guild = &ctx.http.get_guild(*msg.guild_id.unwrap().as_u64()).await.unwrap();
     info!("Synced bans from {}", &guild.name);
 
     debug!("Command finished");
@@ -650,7 +670,7 @@ pub fn syncbans(ctx: &mut Context, msg: &Message) -> CommandResult {
 #[usage("<User> <Reason>")]
 #[min_args(2)]
 #[checks(Moderator)]
-pub fn advise(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn advise(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let target_user_id = match args.current().unwrap().parse::<UserId>() {
         Ok(u) => u,
         Err(err) => {
@@ -664,7 +684,7 @@ pub fn advise(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
     };
     args.advance();
     let reason = args.rest();
-    let advise_channel = match &ctx.http.get_channel(646545388576178178) {
+    let advise_channel = match &ctx.http.get_channel(646545388576178178).await {
         Ok(c) => c.id(),
         Err(err) => {
             error!("Error finding advisory channel: {:?}", err);
@@ -672,7 +692,7 @@ pub fn advise(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
         }
     };
 
-    let user_result = ctx.http.get_user(*target_user_id.as_u64());
+    let user_result = ctx.http.get_user(*target_user_id.as_u64()).await;
 
     let target_user = match &user_result {
         Ok(u) => u,
@@ -682,7 +702,7 @@ pub fn advise(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
         }
     };
 
-    let guild_result = ctx.http.get_guild(*msg.guild_id.unwrap().as_u64());
+    let guild_result = ctx.http.get_guild(*msg.guild_id.unwrap().as_u64()).await;
 
     let guild = match &guild_result {
         Ok(g) => g,
@@ -714,7 +734,7 @@ pub fn advise(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
             e
         });
         m
-    }) {
+    }).await {
         Err(err) => {
             error!("Error sending advisory message: {:?}", err);
             return Err(CommandError(err.to_string()));
@@ -730,7 +750,7 @@ pub fn advise(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
             e
         });
         m
-    }) {
+    }).await {
         Err(err) => {
             error!("Error responding to message: {:?}", err);
             return Err(CommandError(err.to_string()));
@@ -747,7 +767,7 @@ pub fn advise(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 #[min_args(2)]
 #[checks(VibeOfficer)]
 #[only_in(guilds)]
-pub fn modban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn modban(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let db = get_discord_banlist();
     let case_id = &args.single::<u32>()?;
     let modify_thing = &args.single::<String>().unwrap().to_lowercase();
@@ -775,7 +795,7 @@ pub fn modban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
                 e
             });
             m
-        })?;
+        }).await?;
     } else if modify_thing == "withdraw" {
         db.execute(
             "UPDATE dbans SET is_withdrawn = 1 WHERE id = ?1",
@@ -793,7 +813,7 @@ pub fn modban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
                 e
             });
             m
-        })?;
+        }).await?;
     } else {
         msg.channel_id.send_message(&ctx, |m| {
             m.embed(|e| {
@@ -807,7 +827,7 @@ pub fn modban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
                 e
             });
             m
-        })?;
+        }).await?;
     }
 
     Ok(())
@@ -819,10 +839,11 @@ pub fn modban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 #[min_args(1)]
 #[checks(VibeOfficer)]
 #[owner_privilege]
-pub fn bans(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+async fn bans(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let strike_conn = get_discord_banlist();
     let target_user = args.parse::<UserId>().unwrap();
-
+    let mut bans: HashMap<StrikeLog, bool> = HashMap::new();
+    {
     let mut stmt = strike_conn
         .prepare("SELECT reason,id,is_withdrawn FROM dbans WHERE userid = (?)")
         .unwrap();
@@ -830,7 +851,7 @@ pub fn bans(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         .query(params![target_user.as_u64().to_string()])
         .unwrap();
 
-    let mut bans: HashMap<StrikeLog, bool> = HashMap::new();
+    
     while let Some(row) = rows.next().unwrap() {
         let reason = row.get::<usize, String>(0);
         let case_id = row.get::<usize, u32>(1);
@@ -852,7 +873,7 @@ pub fn bans(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         };
         bans.insert(strike, is_withdrawn);
     }
-
+}
     let mut result_vec: Vec<(String, String, bool)> = Vec::new();
 
     for (_i, (s, w)) in bans.iter().enumerate() {
@@ -867,10 +888,12 @@ pub fn bans(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         }
     }
 
+    let target_user_name = target_user.to_user(&ctx.http).await.unwrap().name;
+
     match msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
             let mut title = String::from("Bans for ");
-            title.push_str(&target_user.to_user(&ctx).unwrap().name);
+            title.push_str(&target_user_name);
             e.title(title);
 
             e.fields(result_vec);
@@ -886,7 +909,7 @@ pub fn bans(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         });
 
         m
-    }) {
+    }).await {
         Err(err) => error!("Error sending ban log: {:?}", err),
         Ok(_msg) => (),
     }
@@ -899,14 +922,14 @@ pub fn bans(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[only_in(guilds)]
 #[checks(Moderator)]
 #[num_args(0)]
-pub fn raid(ctx: &mut Context, msg: &Message) -> CommandResult {
+async fn raid(ctx: &Context, msg: &Message) -> CommandResult {
     let http_cache = &ctx.http;
-    let guild_arc = match msg.guild(&ctx) {
+    let guild_arc = match msg.guild(&ctx).await {
         Some(a) => a,
         None => return Err(CommandError("Could not find message guild".to_string())),
     };
-    let guild = guild_arc.read();
-    let mut guild_channels = match guild.channels(http_cache) {
+    let guild = guild_arc.read().await;
+    let mut guild_channels = match guild.channels(http_cache).await {
         Ok(h) => h,
         Err(e) => return Err(CommandError(e.to_string())),
     };
@@ -917,14 +940,14 @@ pub fn raid(ctx: &mut Context, msg: &Message) -> CommandResult {
                 if let Err(e) = gc.edit(http_cache, |e| {
                     e.slow_mode_rate(21600);
                     e
-                }) {
+                }).await {
                     error!("Error in raid: Could not set slowmode on channel {}: {:?}", id.as_u64().to_string(), e);
                 }
             },
             _ => continue,
         }
     }
-    if let Ok(c) = http_cache.get_channel(crate::prelude::NOTIFY_CHANNEL) {
+    if let Ok(c) = http_cache.get_channel(crate::prelude::NOTIFY_CHANNEL).await {
         if let Err(e) =c.id().send_message(&ctx, |m| {
             m.content("@everyone");
             m.embed(|e| {
@@ -941,7 +964,7 @@ pub fn raid(ctx: &mut Context, msg: &Message) -> CommandResult {
                 e
             });
             m
-        }) {
+        }).await {
             return Err(CommandError(format!("Error alerting DSC to raid in {}: {:?}", guild.name.clone(), e.to_string())));
         }
     }
@@ -957,7 +980,7 @@ pub fn raid(ctx: &mut Context, msg: &Message) -> CommandResult {
             e
         });
         m
-    }) {
+    }).await {
         return Err(CommandError(e.to_string()));
     }
     Ok(())
@@ -968,14 +991,14 @@ pub fn raid(ctx: &mut Context, msg: &Message) -> CommandResult {
 #[only_in(guilds)]
 #[checks(Moderator)]
 #[num_args(0)]
-pub fn unraid(ctx: &mut Context, msg: &Message) -> CommandResult {
+async fn unraid(ctx: &Context, msg: &Message) -> CommandResult {
     let http_cache = &ctx.http;
-    let guild_arc = match msg.guild(&ctx) {
+    let guild_arc = match msg.guild(&ctx).await {
         Some(a) => a,
         None => return Err(CommandError("Could not find message guild".to_string())),
     };
-    let guild = guild_arc.read();
-    let mut guild_channels = match guild.channels(http_cache) {
+    let guild = guild_arc.read().await;
+    let mut guild_channels = match guild.channels(http_cache).await {
         Ok(h) => h,
         Err(e) => return Err(CommandError(e.to_string())),
     };
@@ -986,14 +1009,14 @@ pub fn unraid(ctx: &mut Context, msg: &Message) -> CommandResult {
                 if let Err(e) = gc.edit(http_cache, |e| {
                     e.slow_mode_rate(0);
                     e
-                }) {
+                }).await {
                     error!("Error in unraid: Could not remove slowmode on channel {}: {:?}", id.as_u64().to_string(), e);
                 }
             },
             _ => continue,
         }
     }
-    if let Ok(c) = http_cache.get_channel(crate::prelude::NOTIFY_CHANNEL) {
+    if let Ok(c) = http_cache.get_channel(crate::prelude::NOTIFY_CHANNEL).await {
         if let Err(e) =c.id().send_message(&ctx, |m| {
             m.embed(|e| {
                 e.title("Raid Mode Lifted");
@@ -1009,7 +1032,7 @@ pub fn unraid(ctx: &mut Context, msg: &Message) -> CommandResult {
                 e
             });
             m
-        }) {
+        }).await {
             return Err(CommandError(format!("Error alerting DSC to unraid in {}: {:?}", guild.name.clone(), e.to_string())));
         }
     }
@@ -1025,7 +1048,7 @@ pub fn unraid(ctx: &mut Context, msg: &Message) -> CommandResult {
             e
         });
         m
-    }) {
+    }).await {
         return Err(CommandError(e.to_string()));
     }
     Ok(())

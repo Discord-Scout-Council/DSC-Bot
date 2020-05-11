@@ -45,7 +45,7 @@ pub fn contains_banned_word(content: &String, guild_id: &u64) -> bool {
     return false;
 }
 
-async fn log_mod_action(action: ModAction, ctx: &mut Context) {
+pub async fn log_mod_action<'fut>(action: ModAction, ctx: &'fut Context) {
     let guild_id = &action.guild;
     let settings = get_pickle_database(guild_id.as_u64(), "settings.db");
     let mod_log_channel: ChannelId = settings.get::<u64>("modlogs_channel").unwrap().into();
