@@ -1,0 +1,212 @@
+#[async_trait]
+impl EventHandler for Handler {
+    async fn ready(&self, ctx: Context, _ready: Ready) {
+        info!("Logged in to Discord successfully");
+        let activity = Activity::playing("with vibes");
+        ctx.set_presence(Some(activity), OnlineStatus::DoNotDisturb);
+    }
+
+    async fn reaction_add(&self, ctx: Context, add_reaction: Reaction) {
+        if add_reaction.channel_id.as_u64() == &684577265425973285u64 {
+            match verification::handle_verification_reaction(&ctx, add_reaction) {
+                Err(e) => error!("Error verifying user. {}", e),
+                _ => (),
+            }
+        }
+    }
+
+    //* Points
+    async fn message(&self, ctx: Context, msg: Message) {
+        if msg.is_private() {
+            verification::handle_verification_file(&ctx, &msg);
+        }
+        //* Banned Words
+        debug!("Checking banned words list");
+        let guild = match &msg.guild_id {
+            Some(id) => id,
+            None => {
+                debug!("Could not find guildid for private message");
+                return;
+            }
+        };
+        if util::moderation::contains_banned_word(&msg.content, &guild.as_u64()) {
+            msg.channel_id
+                .send_message(&ctx.http, |m| {
+                    m.embed(|e| {
+                        let mut mention = String::from("<@");
+                        mention.push_str(&msg.author.id.as_u64().to_string());
+                        mention.push_str(">");
+
+                        e.title("Warning - Bad Language");
+                        e.description("Do not use poor language or slurs in this server.");
+                        e.fields(vec![("User:", mention, false)]);
+
+                        e.color(Colour::RED);
+
+                        e
+                    });
+
+                    m
+                }).await
+                .unwrap();
+            let action = moderation::ModAction {
+                target: msg.author.clone().id,
+                moderator: ctx
+                    .http
+                    .get_current_application_info()
+                    .await
+                    .unwrap()
+                    .id
+                    .to_user(&ctx)
+                    .await
+                    .unwrap()
+                    .clone(),
+                reason: Some(String::from("Found a banned word")),
+                details: None,
+                action_type: moderation::ModActionType::BadWordDelete,
+                guild: msg.guild_id.clone().unwrap(),
+            };
+            moderation::log_mod_action(action, &mut ctx.clone());
+            msg.delete(&ctx).await.unwrap();
+        }
+    }
+
+    async fn guild_ban_addition(&self, ctx: Context, guild_id: GuildId, banned_user: User) {
+        let db = data::get_discord_banlist();
+        let bans = guild_id.bans(&ctx).await.unwrap();
+
+        let mut reason = &String::from("No reason provided");
+        for (_i, b) in bans.iter().enumerate() {
+            if b.user.id.as_u64() == banned_user.id.as_u64() {
+                match &b.reason {
+                    Some(r) => reason = r,
+                    None => (),
+                }
+            }
+        }
+        if let Err(err) = db.execute(
+            "INSERT INTO dbans (userid,reason,guild_id,is_withdrawn) VALUES (?1,?2,?3,0)",
+            params![
+                banned_user.id.as_u64().to_string(),
+                &reason,
+                guild_id.as_u64().to_string()
+            ],
+        ) {
+            error!(
+                "Encountered an error adding a ban for {}: {:?}",
+                banned_user.name, err
+            );
+        };
+        let blacklist_channel = ctx.http.get_channel(646545388576178178).await.unwrap();
+        let blacklist_channel_id = blacklist_channel.id();
+        let guild = ctx.http.get_guild(guild_id.as_u64().clone()).await.unwrap();
+
+        if let Err(err) = blacklist_channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("New Ban Detected");
+                e.fields(vec![
+                    ("Server", &guild.name, false),
+                    (
+                        "Name",
+                        &format!("{}#{}", &banned_user.name, &banned_user.discriminator),
+                        false,
+                    ),
+                    ("ID", &banned_user.id.as_u64().to_string(), false),
+                ]);
+                if let Some(url) = &banned_user.avatar_url() {
+                    e.thumbnail(url);
+                }
+                e
+            });
+            m
+        }) {
+            error!(
+                "Encountered an error trying to notify DSC about a new ban for {}: {:?}",
+                banned_user.name, err
+            );
+        }
+    }
+
+    async fn guild_create(&self, _ctx: Context, guild: Guild, _is_new: bool) {
+        if _is_new {
+            info!(
+                "Joined new guild {}. Intializing guild settings.",
+                &guild.name
+            );
+        }
+        let mut cache = data::get_pickle_database(&guild.id.as_u64(), "settings.db");
+        if let None = cache.get::<String>("modlogs_channel") {
+            data::init_guild_settings(&mut cache);
+        }
+    }
+
+    async fn guild_member_addition(&self, ctx: Context, guild_id: GuildId, new_member: Member) {
+        let db = data::get_discord_banlist();
+        let user_id = new_member.user_id();
+        let member_id = user_id.as_u64();
+        let mut stmt = db
+            .prepare("SELECT reason FROM dbans WHERE userid = (?)")
+            .unwrap();
+        let mut ban_result = stmt.query(params![&member_id.to_string()]).unwrap();
+        let mut is_banned = false;
+        let mut reason = String::from("No reason provided");
+        if let Ok(o) = ban_result.next() {
+            if let Some(r) = o {
+                is_banned = true;
+                reason = r.get(0).unwrap();
+            }
+        }
+
+        let guild_arc = guild_id.to_guild_cached(&ctx).await.unwrap();
+        let guild = guild_arc.read();
+
+        let settings = data::get_pickle_database(&guild_id.as_u64(), "settings.db");
+        let alert_channel: ChannelId;
+        let temp_channel = match settings.get::<u64>("modlogs_channel") {
+            Some(channel) => channel,
+            None => 0u64,
+        };
+        if temp_channel == 0 {
+            alert_channel = match guild.system_channel_id {
+                Some(c) => c,
+                None => {
+                    error!("Error fetching mod logs channel: Channel not set and System Channel does not exist.");
+                    return;
+                }
+            }
+        } else {
+            alert_channel = temp_channel.into();
+        }
+        if is_banned {
+            let user = &ctx.http.get_user(*new_member.user_id().as_u64()).unwrap();
+            match alert_channel.send_message(&ctx, |m| {
+                m.embed(|e| {
+                    e.title("Alert!");
+                    e.description("A banned user has joined the server.");
+                    e.field(
+                        "User",
+                        format!("{}#{}", user.name, user.discriminator),
+                        true,
+                    );
+                    e.field("Reason", reason, true);
+                    e.footer(|f| {
+                        f.text(format!("DSC Bot | Powered by Rusty Developers"));
+                        f
+                    });
+                    e.colour(Colour::RED);
+
+                    e
+                });
+                m
+            }) {
+                Err(err) => {
+                    error!(
+                        "Encountered an error warning {} about {}#{}: {:?}",
+                        &guild.name, user.name, user.discriminator, err
+                    );
+                }
+                _ => (),
+            }
+        }
+    }
+}
