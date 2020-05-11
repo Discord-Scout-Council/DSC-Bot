@@ -18,7 +18,7 @@ enum VerifyType {
     Close,
 }
 
-async fn handle_verification_file(ctx: &Context, msg: &Message) -> Result<(), String> {
+pub async fn handle_verification_file(ctx: &Context, msg: &Message) -> Result<(), String> {
     if msg.attachments.len() == 0 {
         return Err(String::from("No attachments found"));
     }
@@ -76,7 +76,7 @@ async fn handle_verification_file(ctx: &Context, msg: &Message) -> Result<(), St
     Ok(())
 }
 
-async fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Result<String, String> {
+pub async fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Result<String, String> {
     let current_info = &ctx.http.get_current_application_info().await.unwrap();
     if react.user_id.as_u64() == current_info.id.as_u64() {
         return Ok(String::from(""));
