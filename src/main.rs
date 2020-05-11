@@ -36,7 +36,7 @@ mod util;
 /*use crate::commands::{
     badges::*, general::*, moderation::*, owner::*, settings::*, verification::*,
 };*/
-use crate::commands::{general::*, moderation::*, owner::*};
+use crate::commands::{general::*, moderation::*, owner::*, settings::*};
 use util::*;
 
 mod prelude;
@@ -67,11 +67,12 @@ struct Owner;
     unraid,
 )]
 struct Moderation;
-/*
+
 #[group]
 #[commands(serversettings, resetsettings)]
 struct Settings;
 
+/*
 #[group]
 #[commands(age, verify)]
 struct Verification;
@@ -137,6 +138,7 @@ async fn main() {
     .group(&GENERAL_GROUP)
     .group(&MODERATION_GROUP)
     .group(&OWNER_GROUP)
+    .group(&SETTINGS_GROUP)
     .help(&HELP);
 
     let mut client = Client::new(&token)
