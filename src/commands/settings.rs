@@ -16,7 +16,7 @@ use serenity::{model::channel::Message, prelude::*};
 #[checks(Moderator)]
 #[sub_commands(get, set)]
 #[only_in(guilds)]
-pub fn serversettings(ctx: &mut Context, msg: &Message) -> CommandResult {
+async fn serversettings(ctx: &Context, msg: &Message) -> CommandResult {
     if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
             e.title("Server Settings Help");
@@ -32,7 +32,7 @@ pub fn serversettings(ctx: &mut Context, msg: &Message) -> CommandResult {
             e
         });
         m
-    }) {
+    }).await {
         error!("Error sending server settings help: {:?}", err);
     }
 
@@ -43,7 +43,7 @@ pub fn serversettings(ctx: &mut Context, msg: &Message) -> CommandResult {
 #[description = "Gets current value of a setting"]
 #[checks(Moderator)]
 #[num_args(1)]
-pub fn get(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+async fn get(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let db = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "settings.db");
 
     match db.get::<String>(&args.rest()) {
@@ -59,7 +59,7 @@ pub fn get(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                 });
 
                 m
-            })?;
+            }).await?;
         }
         None => {
             msg.channel_id.send_message(&ctx, |m| {
@@ -75,7 +75,7 @@ pub fn get(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                 });
 
                 m
-            })?;
+            }).await?;
         }
     }
 
@@ -86,7 +86,7 @@ pub fn get(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[description = "Sets a setting"]
 #[usage("<Setting> <Value>")]
 #[min_args(2)]
-pub fn set(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+async fn set(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let mut settings = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "settings.db");
     let setting_name = args.current().unwrap();
     let mut arg_value = args.clone();
@@ -115,7 +115,7 @@ pub fn set(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             });
 
             m
-        })?;
+        }).await?;
     }
 
     if let None = settings.get::<u64>(&setting_name) {
@@ -130,7 +130,7 @@ pub fn set(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                 e
             });
             m
-        })?;
+        }).await?;
     } else {
         let old_value = settings.get::<u64>(&setting_name).unwrap();
         settings.set(setting_name, &setting_value)?;
@@ -149,7 +149,7 @@ pub fn set(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                 e
             });
             m
-        })?;
+        }).await?;
     }
 
     Ok(())
@@ -158,7 +158,7 @@ pub fn set(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[description = "Resets server settings"]
 #[checks(Moderator)]
-pub fn resetsettings(ctx: &mut Context, msg: &Message) -> CommandResult {
+async fn resetsettings(ctx: &Context, msg: &Message) -> CommandResult {
     let mut db = get_pickle_database(&msg.guild_id.unwrap().as_u64(), "settings.db");
 
     init_guild_settings(&mut db);
@@ -175,7 +175,7 @@ pub fn resetsettings(ctx: &mut Context, msg: &Message) -> CommandResult {
             e
         });
         m
-    })?;
+    }).await?;
 
     Ok(())
 }

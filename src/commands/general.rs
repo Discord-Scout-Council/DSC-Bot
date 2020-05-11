@@ -10,13 +10,14 @@ use serenity::{
         guild::PartialGuild,
         id::GuildId,
         invite::{Invite, RichInvite},
+        guild::Guild,
     },
 };
 
 #[command]
 #[description = "Pings the bot"]
-pub fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
-    if let Err(err) = msg.channel_id.say(&ctx.http, "Pong!") {
+async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
+    if let Err(err) = msg.channel_id.say(&ctx.http, "Pong!").await {
         println!("Err sending message: {}", err);
     };
 
@@ -25,7 +26,7 @@ pub fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
 
 #[command]
 #[description = "Provides helpful information about the bot"]
-pub fn about(ctx: &mut Context, msg: &Message) -> CommandResult {
+async fn about(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
             e.title("DSC Bot");
@@ -39,7 +40,7 @@ pub fn about(ctx: &mut Context, msg: &Message) -> CommandResult {
         });
 
         m
-    })?;
+    }).await?;
 
     Ok(())
 }
@@ -47,12 +48,12 @@ pub fn about(ctx: &mut Context, msg: &Message) -> CommandResult {
 #[command]
 #[description = "Displays information about the server"]
 #[only_in(guilds)]
-pub fn serverinfo(ctx: &mut Context, msg: &Message) -> CommandResult {
-    let guild_arc = msg.guild_id.unwrap().to_guild_cached(&ctx.cache).unwrap();
-    let guild = guild_arc.read();
-    let member_count = guild.member_count;
+async fn serverinfo(ctx: &Context, msg: &Message) -> CommandResult {
+    let guild_lock = msg.guild(&ctx.cache).await.unwrap();
+    let guild = guild_lock.read().await;
 
-    let mut guild_owner = guild.owner_id.to_user(&ctx).unwrap().name;
+    let member_count = guild.member_count;
+    let mut guild_owner = guild.owner_id.to_user(&ctx.http).await.unwrap().name;
 
     let icon_url = match guild.icon_url() {
         Some(url) => url,
@@ -63,7 +64,8 @@ pub fn serverinfo(ctx: &mut Context, msg: &Message) -> CommandResult {
     guild_owner.push_str(
         &guild
             .owner_id
-            .to_user(&ctx)
+            .to_user(&ctx.http)
+            .await
             .unwrap()
             .discriminator
             .to_string(),
@@ -82,7 +84,7 @@ pub fn serverinfo(ctx: &mut Context, msg: &Message) -> CommandResult {
         });
 
         m
-    }) {
+    }).await {
         Err(err) => error!("Error sending server count: {:?}", err),
         Ok(_msg) => (),
     }
@@ -94,21 +96,24 @@ pub fn serverinfo(ctx: &mut Context, msg: &Message) -> CommandResult {
 #[description = "Sends a suggestion to the bot developers"]
 #[usage("<Suggestion>")]
 #[min_args(1)]
-pub fn botsuggest(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let suggest_channel = ctx.cache.read().guild_channel(668964814684422184).unwrap();
+async fn botsuggest(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let suggest_channel = ctx.cache.read().await.guild_channel(668964814684422184).unwrap();
     let suggestion = args.rest();
-    suggest_channel.read().send_message(&ctx, |m| {
+    let guild_arc = &msg.guild(&ctx).await.unwrap();
+    let guild = guild_arc.read().await;
+    let guild_name = guild.name.clone();
+    suggest_channel.read().await.send_message(ctx, |m| {
         m.embed(|e| {
             e.title("Bot Suggestion");
             e.description(suggestion);
             e.field("Suggester", &msg.author.name, true);
-            e.field("Guild", &msg.guild(&ctx).unwrap().read().name, true);
+            e.field("Guild", guild_name, true);
 
             e
         });
 
         m
-    })?;
+    }).await?;
 
     msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
@@ -120,14 +125,14 @@ pub fn botsuggest(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult
         });
 
         m
-    })?;
+    }).await?;
 
     Ok(())
 }
 
 #[command]
 #[description = "Describes what kind of data the bot collects, and what you can do to get your data removed."]
-pub fn privacy(ctx: &mut Context, msg: &Message) -> CommandResult {
+async fn privacy(ctx: &Context, msg: &Message) -> CommandResult {
     match msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
             e.title("Privacy");
@@ -141,7 +146,7 @@ pub fn privacy(ctx: &mut Context, msg: &Message) -> CommandResult {
             e
         });
         m
-    }) {
+    }).await {
         Err(err) => error!("Error sending privacy information: {:?}", err),
         _ => ()
     }
@@ -149,14 +154,15 @@ pub fn privacy(ctx: &mut Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 
+/*
 #[command]
 #[description = "Returns a list of member servers, with invites if available. This command may take a while to process."]
-pub fn servers(ctx: &mut Context, msg: &Message) -> CommandResult {
+async fn servers(ctx: &Context, msg: &Message) -> CommandResult {
     let http_cache = &ctx.http;
-    let current_info = http_cache.get_current_application_info()?;
+    let current_info = http_cache.get_current_application_info().await?;
     let bot_id = current_info.id.as_u64();
     http_cache.broadcast_typing(*msg.channel_id.as_u64());
-    let guild_info_list = match http_cache.get_guilds(&GuildPagination::After(GuildId(0)), 50) {
+    let guild_info_list = match http_cache.get_guilds(&GuildPagination::After(GuildId(0)), 50).await {
         Ok(v) => v,
         Err(err) => return Err(CommandError(err.to_string())),
     };
@@ -174,16 +180,13 @@ pub fn servers(ctx: &mut Context, msg: &Message) -> CommandResult {
             continue;
         }
         let guild_name = &guild.name;
-        let partial_guild = match guild.id.to_partial_guild(http_cache) {
-            Ok(p) => p,
-            Err(err) => return Err(CommandError(err.to_string())),
-        };
-        let guild_owner = match partial_guild.owner_id.to_user(http_cache) {
+        let partial_guild = guild.id.to_partial_guild(http_cache).await?;
+        let guild_owner = match partial_guild.owner_id.to_user(http_cache).await {
             Ok(u) => u,
             Err(err) => return Err(CommandError(err.to_string())),
         };
         let owner_name = format!("<@{}>", guild_owner.id.as_u64().to_string());
-        let guild_arc = match partial_guild.id.to_guild_cached(&ctx) {
+        let guild_arc = match partial_guild.id.to_guild_cached(&ctx).await {
             Some(a) => a,
             None => return Err(CommandError("Could not open the guild Arc.".to_string())),
         };
@@ -196,7 +199,7 @@ pub fn servers(ctx: &mut Context, msg: &Message) -> CommandResult {
         let invite: String = match Invite::create(http_cache, default_channel.id, |mut i| {
             i.max_age(0);
             i
-        }) {
+        }).await {
             Ok(i) => i.url(),
             Err(err) => {
                 warn!("Could not create invite for {}", guild_name);
@@ -222,9 +225,10 @@ pub fn servers(ctx: &mut Context, msg: &Message) -> CommandResult {
             e
         });
         m
-    }) {
+    }).await {
         return Err(CommandError(err.to_string()));
     }
 
     Ok(())
 }
+*/

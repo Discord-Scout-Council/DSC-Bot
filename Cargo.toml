@@ -18,9 +18,11 @@ rusqlite = "0.23.1"
 kankyo = "0.3"
 env_logger = "0.7.1"
 log = "0.4.8"
+tokio = { version = "0.2", features = ["macros"] }
 
 [dependencies.serenity]
-version = "0.8.6"
+git = "https://github.com/Lakelezz/serenity.git"
+branch = "await"
 default-features = false
 features = [
     "builder",

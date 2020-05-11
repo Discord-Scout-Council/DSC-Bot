@@ -45,18 +45,20 @@ pub fn contains_banned_word(content: &String, guild_id: &u64) -> bool {
     return false;
 }
 
-pub fn log_mod_action(action: ModAction, ctx: &mut Context) {
+pub async fn log_mod_action<'fut>(action: ModAction, ctx: &'fut Context) {
     let guild_id = &action.guild;
     let settings = get_pickle_database(guild_id.as_u64(), "settings.db");
     let mod_log_channel: ChannelId = settings.get::<u64>("modlogs_channel").unwrap().into();
+
+    let target_name: &String = &action.target.to_user(&ctx.http).await.unwrap().name;
 
     mod_log_channel
         .send_message(&ctx, |m| {
             m.embed(|e| {
                 e.title("Moderation Log Entry");
                 e.fields(vec![
-                    ("User", &action.target.to_user(&ctx).unwrap().name, true),
-                    ("Moderator", &action.moderator.name, true),
+                    ("User", &target_name, true),
+                    ("Moderator", &&action.moderator.name, true),
                 ]);
 
                 if let Some(r) = &action.reason {
@@ -86,5 +88,6 @@ pub fn log_mod_action(action: ModAction, ctx: &mut Context) {
 
             m
         })
+        .await
         .unwrap();
 }

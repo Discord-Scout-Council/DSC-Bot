@@ -8,7 +8,7 @@ use crate::prelude::*;
 #[description = "Allows users to set their age group as over/under 18"]
 #[usage("<over/under>")]
 #[num_args(1)]
-pub fn age(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+async fn age(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let mut age_db = get_global_pickle_database("age.db");
     let overunder = args.current().unwrap();
     if overunder == "over" {
@@ -40,7 +40,7 @@ pub fn age(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                 e
             });
             m
-        }) {
+        }).await {
             Err(err) => {
                 error!("Error sending error message response in channel {}: {:?}", &msg.channel_id.as_u64().to_string(), err);
                 return Err(CommandError(err.to_string()));
@@ -66,7 +66,7 @@ pub fn age(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             e
         });
         m
-    }) {
+    }).await {
         Err(err) => {
             error!(
                 "Error sending age success response in channel {}: {:?}",
@@ -85,7 +85,7 @@ pub fn age(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 
 #[command]
 #[description = "Gives instructions on how to verify your Awards and Advancements"]
-pub fn verify(ctx: &mut Context, msg: &Message) -> CommandResult {
+async fn verify(ctx: &Context, msg: &Message) -> CommandResult {
     if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
             e.title("Verification");
@@ -107,7 +107,7 @@ pub fn verify(ctx: &mut Context, msg: &Message) -> CommandResult {
             e
         });
         m
-    }) {
+    }).await {
         error!("Error sending verify instructions: {:?}", err);
         return Err(CommandError(err.to_string()));
     }
