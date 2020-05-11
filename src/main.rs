@@ -87,19 +87,19 @@ impl EventHandler for Handler {
         info!("Connected as {}", ready.user.name);
     }
 }
-/*
+
 #[help]
 async fn help(
-    context: &mut Context,
+    context: &Context,
     msg: &Message,
     args: Args,
     help_options: &'static HelpOptions,
     groups: &[&'static CommandGroup],
     owners: HashSet<UserId>,
 ) -> CommandResult {
-    help_commands::with_embeds(context, msg, args, help_options, groups, owners)
+    help_commands::with_embeds(context, msg, args, help_options, groups, owners).await
 }
-*/
+
 #[tokio::main]
 async fn main() {
     kankyo::init().expect("Failed to load .env file");
@@ -133,7 +133,8 @@ async fn main() {
         .owners(owners)
         .prefix(&env::var("DISCORD_PREFIX").unwrap())
     )
-    .group(&GENERAL_GROUP);
+    .group(&GENERAL_GROUP)
+    .help(&HELP);
 
     let mut client = Client::new(&token)
         .framework(framework)
