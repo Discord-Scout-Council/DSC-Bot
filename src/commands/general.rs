@@ -10,6 +10,7 @@ use serenity::{
         guild::PartialGuild,
         id::GuildId,
         invite::{Invite, RichInvite},
+        guild::Guild,
     },
 };
 
@@ -48,11 +49,11 @@ async fn about(ctx: &Context, msg: &Message) -> CommandResult {
 #[description = "Displays information about the server"]
 #[only_in(guilds)]
 async fn serverinfo(ctx: &Context, msg: &Message) -> CommandResult {
-    let guild_arc = msg.guild_id.unwrap().to_guild_cached(&ctx.cache).await.unwrap();
-    let guild = guild_arc.read();
-    let member_count = guild.member_count;
+    let guild_lock = msg.guild(&ctx.cache).await.unwrap();
+    let guild = guild_lock.read().await;
 
-    let mut guild_owner = guild.owner_id.to_user(&ctx).unwrap().name;
+    let member_count = guild.member_count;
+    let mut guild_owner = guild.owner_id.to_user(&ctx.http).await.unwrap().name;
 
     let icon_url = match guild.icon_url() {
         Some(url) => url,
@@ -63,7 +64,8 @@ async fn serverinfo(ctx: &Context, msg: &Message) -> CommandResult {
     guild_owner.push_str(
         &guild
             .owner_id
-            .to_user(&ctx)
+            .to_user(&ctx.http)
+            .await
             .unwrap()
             .discriminator
             .to_string(),
@@ -97,13 +99,15 @@ async fn serverinfo(ctx: &Context, msg: &Message) -> CommandResult {
 async fn botsuggest(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let suggest_channel = ctx.cache.read().await.guild_channel(668964814684422184).unwrap();
     let suggestion = args.rest();
-    let guild = &msg.guild(&ctx).await.unwrap();
+    let guild_arc = &msg.guild(&ctx).await.unwrap();
+    let guild = guild_arc.read().await;
+    let guild_name = guild.name.clone();
     suggest_channel.read().await.send_message(ctx, |m| {
         m.embed(|e| {
             e.title("Bot Suggestion");
             e.description(suggestion);
             e.field("Suggester", &msg.author.name, true);
-            e.field("Guild", guild.read().name, true);
+            e.field("Guild", guild_name, true);
 
             e
         });
@@ -150,6 +154,7 @@ async fn privacy(ctx: &Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 
+/*
 #[command]
 #[description = "Returns a list of member servers, with invites if available. This command may take a while to process."]
 async fn servers(ctx: &Context, msg: &Message) -> CommandResult {
@@ -175,10 +180,7 @@ async fn servers(ctx: &Context, msg: &Message) -> CommandResult {
             continue;
         }
         let guild_name = &guild.name;
-        let partial_guild = match guild.id.to_partial_guild(http_cache).await? {
-            Ok(p) => p,
-            Err(err) => return Err(CommandError(err.to_string())),
-        };
+        let partial_guild = guild.id.to_partial_guild(http_cache).await?;
         let guild_owner = match partial_guild.owner_id.to_user(http_cache).await {
             Ok(u) => u,
             Err(err) => return Err(CommandError(err.to_string())),
@@ -229,3 +231,4 @@ async fn servers(ctx: &Context, msg: &Message) -> CommandResult {
 
     Ok(())
 }
+*/
