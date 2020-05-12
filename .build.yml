@@ -5,30 +5,22 @@ image: archlinux
 packages:
 - rustup
 repositories: {}
-secrets:
-    - 0467a7c3-16d9-491c-9874-807bce4f2616
-    - a88c3ffc-9bb0-451e-bf59-ef6198da6754
 shell: false
 sources:
-- https://git.sr.ht/~muirrum/campmasterconstantine
+- https://github.com/Discord-Scout-Council/DSC-Bot.git
 tasks:
 - setup: |
     rustup toolchain install nightly stable
-    cd campmasterconstantine/
+    cd DSC-Bot/
     rustup run stable cargo fetch
 - stable: |
     rustup default stable
-    cd campmasterconstantine/
+    cd DSC-Bot/
     cargo build --verbose
     cargo test --verbose
-- deploy: |
-    rustup default stable
-    cd campmasterconstantine
-    cargo build --release
-    scp target/release/campmaster-constantine osalter@kronos.devosmium.xyz:/usr/bot/campmasterconstantine/cc-update
 - nightly: |-
     rustup default nightly
-    cd campmasterconstantine/
+    cd DSC-Bot/
     cargo build --verbose ||:
     cargo test --verbose  ||:
 triggers: []
