@@ -6,6 +6,8 @@
 use pickledb::{PickleDb, PickleDbDumpPolicy};
 use rusqlite::{params, Connection};
 use std::fs::create_dir_all;
+use std::env;
+use sqlx::postgres::PgPool;
 
 pub fn get_pickle_database(guild_id: &u64, db_name: &str) -> PickleDb {
     let path = construct_data_path(&guild_id, &db_name);
@@ -100,4 +102,22 @@ pub fn get_badge_db() -> Connection {
 pub fn init_guild_settings(db: &mut PickleDb) {
     //* Question of the Day
     db.set("modlogs_channel", &0u64);
+}
+
+
+pub async fn obtain_pg_pool() -> Result<PgPool, Box<dyn std::error::Error>> {
+    let url = match env::var("PSQL_URL") {
+        Ok(u) => u,
+        Err(err) => {
+            return Err(Box::new(err));
+        }
+    };
+
+    //Connect and return a pool
+    let pool = PgPool::builder()
+        .max_size(5)
+        .build(&url)
+        .await?;
+
+    Ok(pool)
 }

@@ -31,6 +31,8 @@ use rusqlite::params;
 
 use log::{debug, error, info};
 
+use sqlx::PgPool;
+
 mod checks;
 mod commands;
 mod util;
@@ -41,6 +43,12 @@ use crate::commands::{general::*, moderation::*, owner::*, settings::*, verifica
 use util::*;
 
 mod prelude;
+
+// Postgres Connection Pool
+struct ConnectionPool;
+impl TypeMapKey for ConnectionPool {
+    type Value = PgPool;
+}
 
 #[group]
 #[commands(ping, about, serverinfo, botsuggest, privacy)]
@@ -455,8 +463,22 @@ async fn main() {
     let mut disabled_commands: HashSet<String> = HashSet::new();
     disabled_commands.insert("servers".to_string());
 
+    //* Scope to add things to global data
+    {
+        let mut data = client.data.write().await;
+        let pool = match util::data::obtain_pg_pool().await {
+            Ok(pg) => pg,
+            Err(err) => {
+                error!("Could not obtain a postgres connection");
+                panic!("Obtaining Postgres connection");
+            }
+        };
+        data.insert::<ConnectionPool>(pool.clone());
+    }
+
     info!("Starting client");
     if let Err(err) = client.start().await {
         error!("Client error: {:?}", err);
     }
+
 }
