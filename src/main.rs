@@ -234,13 +234,18 @@ impl EventHandler for Handler {
         let mut reason = String::from("No reason provided");
         {
         let mut stmt = db
-            .prepare("SELECT reason FROM dbans WHERE userid = (?)")
+            .prepare("SELECT reason,is_withdrawn FROM dbans WHERE userid = (?)")
             .unwrap();
         let mut ban_result = stmt.query(params![&member_id.to_string()]).unwrap();
+        // Nest IF statements to determine if a ban was withdrawn
         if let Ok(o) = ban_result.next() {
             if let Some(r) = o {
-                is_banned = true;
-                reason = r.get(0).unwrap();
+                if let Ok(withdrawn) = r.get::<usize,u32>(1) {
+                    if withdrawn == 0 {
+                        is_banned = true;
+                        reason = r.get(0).unwrap();
+                    }
+                }
             }
         }
     }
