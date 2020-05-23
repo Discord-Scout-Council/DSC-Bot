@@ -466,8 +466,7 @@ async fn runuser(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         .prepare("SELECT reason,guild_id,id,is_withdrawn FROM dbans WHERE userid = (?)")
         .unwrap();
     let mut ban_result = dbans_stmt.query(params![&target_id.as_u64().to_string()])?;
-    while let Ok(row) = ban_result.next() {
-    if let Some(o) = row {
+    if let Some(o) = ban_result.next().unwrap() {
             let is_withdrawn = match o.get(3) {
                 Ok(i) => i,
                 Err(err) => {
@@ -480,7 +479,7 @@ async fn runuser(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         
     }
 }
-}
+
 
     {
     // Badges
