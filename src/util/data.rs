@@ -6,6 +6,7 @@
 use pickledb::{PickleDb, PickleDbDumpPolicy};
 use rusqlite::{params, Connection};
 use std::fs::create_dir_all;
+use mongodb::{Client, Database, options::ClientOptions};
 
 pub fn get_pickle_database(guild_id: &u64, db_name: &str) -> PickleDb {
     let path = construct_data_path(&guild_id, &db_name);
@@ -100,4 +101,20 @@ pub fn get_badge_db() -> Connection {
 pub fn init_guild_settings(db: &mut PickleDb) {
     //* Question of the Day
     db.set("modlogs_channel", &0u64);
+}
+
+pub async fn get_mongo_client() -> Result<Client, Box<dyn std::error::Error>> {
+    let client_options = ClientOptions::parse(&env::var("MONGO_URL")?).await?;
+
+    let client = Client::with_options(client_options)?;
+
+    Ok(client)
+}
+
+pub async fn get_mongo_database() -> Result<Database, Box<dyn std::error::Error>> {
+
+    let client = get_mongo_client().await?;
+
+    Ok(client.database("dscbot"))
+
 }
