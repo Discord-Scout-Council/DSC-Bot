@@ -7,6 +7,7 @@ use pickledb::{PickleDb, PickleDbDumpPolicy};
 use rusqlite::{params, Connection};
 use std::fs::create_dir_all;
 use mongodb::{Client, Database, options::ClientOptions};
+use std::env;
 
 pub fn get_pickle_database(guild_id: &u64, db_name: &str) -> PickleDb {
     let path = construct_data_path(&guild_id, &db_name);
