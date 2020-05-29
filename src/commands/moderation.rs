@@ -19,10 +19,11 @@ use std::cmp::Ordering;
 use crate::util::{
     data::{
         get_badge_db, get_discord_banlist, get_global_pickle_database, get_pickle_database,
-        get_strike_database,
+        get_strike_database, get_mongo_database
     },
     moderation::*,
 };
+use bson::doc;
 
 struct Strike {
     user: UserId,
@@ -849,18 +850,15 @@ async fn modban(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[owner_privilege]
 async fn bans(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let strike_conn = get_discord_banlist();
+    let db = get_mongo_database().await?;
+    let collection = db.collection("bans");
     let target_user = args.parse::<UserId>().unwrap();
+    let filter = doc! {"user_id": target_user.0};
+    let mut cursor = collection.find(filter, None).await?;
     let mut bans: HashMap<StrikeLog, bool> = HashMap::new();
     {
-    let mut stmt = strike_conn
-        .prepare("SELECT reason,id,is_withdrawn FROM dbans WHERE userid = (?)")
-        .unwrap();
-    let mut rows = stmt
-        .query(params![target_user.as_u64().to_string()])
-        .unwrap();
-
-    
-    while let Some(row) = rows.next().unwrap() {
+        
+    while let Some(result) = cursor.next().await {
         let reason = row.get::<usize, String>(0);
         let case_id = row.get::<usize, u32>(1);
         let is_withdrawn = match row.get::<usize, u32>(2) {

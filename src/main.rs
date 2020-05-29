@@ -41,6 +41,7 @@ use crate::commands::{general::*, moderation::*, owner::*, settings::*, verifica
 use util::*;
 
 mod prelude;
+use bson::doc;
 
 #[group]
 #[commands(ping, about, serverinfo, botsuggest, privacy)]
@@ -158,7 +159,14 @@ impl EventHandler for Handler {
     }
 
     async fn guild_ban_addition(&self, ctx: Context, guild_id: GuildId, banned_user: User) {
-        let db = data::get_discord_banlist();
+        let db = match data::get_mongo_database().await {
+            Ok(db) => db,
+            Err(err) => {
+                error!("Could not get mongo connection: {:?}", err);
+                return;
+            }
+        };
+        let collection = db.collection("bans");
         let bans = guild_id.bans(&ctx).await.unwrap();
 
         let mut reason = &String::from("No reason provided");
@@ -170,20 +178,11 @@ impl EventHandler for Handler {
                 }
             }
         }
-        if let Err(err) = db.execute(
-            "INSERT INTO dbans (userid,reason,guild_id,is_withdrawn) VALUES (?1,?2,?3,0)",
-            params![
-                banned_user.id.as_u64().to_string(),
-                &reason,
-                guild_id.as_u64().to_string()
-            ],
-        ) {
-            error!(
-                "Encountered an error adding a ban for {}: {:?}",
-                banned_user.name, err
-            );
-        };
-        let blacklist_channel = ctx.http.get_channel(646545388576178178).await.unwrap();
+        let new_ban = doc! { "user_id": banned_user.id.as_u64(), "reason": &reason, "guild_id": guild_id.as_u64(), "is_withdrawn": false};
+        if let Err(err) = collection.insert_one(new_ban, None).await {
+            error!("Error inserting new ban into mongo: {:?}", err);
+        }
+        let blacklist_channel = ctx.http.get_channel(372055286300540939).await.unwrap();
         let blacklist_channel_id = blacklist_channel.id();
         let guild = ctx.http.get_guild(guild_id.as_u64().clone()).await.unwrap();
 
@@ -198,6 +197,7 @@ impl EventHandler for Handler {
                         false,
                     ),
                     ("ID", &banned_user.id.as_u64().to_string(), false),
+                    ("Reason", &reason, false),
                 ]);
                 if let Some(url) = &banned_user.avatar_url() {
                     e.thumbnail(url);
