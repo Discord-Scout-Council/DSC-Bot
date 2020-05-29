@@ -296,3 +296,15 @@ pub async fn nominate(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 
     Ok(())
 }
+
+#[command]
+#[description = "Starts a vote in the specified channel"]
+#[usage("<channel> <Vote>")]
+#[min_args(2)]
+pub async fn startvote(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let target_channel = args.single::<ChannelId>()?;
+    let vote_thing = args.rest();
+    crate::util::run_yesno_vote(&ctx, target_channel, vote_thing.to_string()).await?;
+
+    Ok(())
+}

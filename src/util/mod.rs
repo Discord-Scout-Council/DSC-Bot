@@ -24,7 +24,7 @@ pub async fn run_yesno_vote(ctx: &Context, channel: ChannelId, vote: String) -> 
         }
     };
 
-    if let Err(err) = msg.react(&ctx.http, ReactionType::Unicode("✓".to_string())).await {
+    if let Err(err) = msg.react(&ctx.http, ReactionType::Unicode("☑️".to_string())).await {
         return Err(Box::new(err));
     }
 
