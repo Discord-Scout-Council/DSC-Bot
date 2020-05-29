@@ -267,7 +267,8 @@ pub async fn nominate(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             e.title("New nominee");
             e.fields(vec![
                 ("Demographic", demographic, true),
-                ("Member Count", member_count.to_string(), true)
+                ("Member Count", member_count.to_string(), true),
+                ("Invite Link", invite_url, true),
             ]);
             e.description(target_name);
             e
