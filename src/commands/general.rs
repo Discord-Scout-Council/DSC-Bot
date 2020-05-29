@@ -261,7 +261,7 @@ pub async fn nominate(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     };
 
 
-    let notify_channel = ChannelId(372055286300540939);
+    let notify_channel = ChannelId(668964814684422184);
     if let Err(err) = notify_channel.send_message(&ctx, |m| {
         m.embed(|e| {
             e.title("New nominee");
