@@ -278,6 +278,21 @@ pub async fn nominate(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         return Err(CommandError(format!("Could not send nominee: {:?}", err)));
     }
 
+    if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Nomination Sent");
+            e.color(Colour::DARK_GREEN);
+            e.footer(|f| {
+                f.text("DSC Bot | Powered by Rusty Development");
+                f
+            });
+            e
+        });
+        m
+    }).await {
+        return Err(CommandError(err.to_string()));
+    }
+
 
     Ok(())
 }
