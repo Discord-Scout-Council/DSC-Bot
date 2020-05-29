@@ -255,13 +255,13 @@ pub async fn nominate(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     };
 
     let target_name = target_server.name;
-    let target_icon = target_server.icon;
     let member_count = match invite.approximate_member_count {
         Some(count) => count,
         None => 0u64,
     };
 
-    let notify_channel = ChannelId(668964814684422184);
+
+    let notify_channel = ChannelId(372055286300540939);
     if let Err(err) = notify_channel.send_message(&ctx, |m| {
         m.embed(|e| {
             e.title("New nominee");
@@ -270,9 +270,6 @@ pub async fn nominate(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                 ("Member Count", member_count.to_string(), true)
             ]);
             e.description(target_name);
-            if let Some(url) = target_icon {
-                e.thumbnail(url);
-            }
             e
         });
         m
