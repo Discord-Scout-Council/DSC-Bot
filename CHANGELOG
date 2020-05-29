@@ -1,3 +1,7 @@
 
-# Unreleased (2020-05-28):
+# Unreleased (2020-05-29):
+- [Added] nominate
+    Added success message
+    Added invite link field to nomination alert
+- [Added] CHANGELOG file
 - [Added] git journal configuration
