@@ -198,6 +198,7 @@ impl EventHandler for Handler {
                         false,
                     ),
                     ("ID", &banned_user.id.as_u64().to_string(), false),
+                    ("Reason", &reason, false),
                 ]);
                 if let Some(url) = &banned_user.avatar_url() {
                     e.thumbnail(url);
