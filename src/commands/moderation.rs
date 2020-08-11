@@ -463,15 +463,23 @@ async fn runuser(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let age_group = age_db.get::<String>(&target_id.as_u64().to_string());
     {
     let mut dbans_stmt = db
-        .prepare("SELECT reason,guild_id,id FROM dbans WHERE userid = (?)")
+        .prepare("SELECT reason,guild_id,id,is_withdrawn FROM dbans WHERE userid = (?)")
         .unwrap();
     let mut ban_result = dbans_stmt.query(params![&target_id.as_u64().to_string()])?;
-    if let Ok(o) = ban_result.next() {
-        if let Some(_r) = o {
-            is_banned = true;
-        }
+    if let Some(o) = ban_result.next().unwrap() {
+            let is_withdrawn = match o.get(3) {
+                Ok(i) => i,
+                Err(err) => {
+                    0
+                }
+            };
+            if is_withdrawn == 0 {
+                is_banned = true;
+            }
+        
     }
 }
+
 
     {
     // Badges

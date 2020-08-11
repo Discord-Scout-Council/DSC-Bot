@@ -8,8 +8,8 @@ use serenity::{
     http::GuildPagination,
     model::{
         guild::PartialGuild,
-        id::GuildId,
-        invite::{Invite, RichInvite},
+        id::{GuildId, ChannelId},
+        invite::{Invite, InviteGuild},
         guild::Guild,
     },
 };
@@ -232,3 +232,79 @@ async fn servers(ctx: &Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 */
+
+#[command]
+#[description = "Sends a server to be nominated for membership in DSC."]
+#[min_args(2)]
+pub async fn nominate(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let invite_url = args.single::<String>()?;
+    let invite_code = match invite_url.split("/").last() {
+        Some(url) => url,
+        None => {
+            return Err(CommandError(format!("Error fetching invite code")));
+        }
+    };
+    let invite: Invite = Invite::get(&ctx, invite_code, true).await?;
+    let demographic = args.single::<String>()?;
+
+    let target_server: InviteGuild = match invite.guild {
+        Some(guild) => guild,
+        None => {
+            return Err(CommandError(format!("Could not fetch nominee guild")));
+        }
+    };
+
+    let target_name = target_server.name;
+    let member_count = match invite.approximate_member_count {
+        Some(count) => count,
+        None => 0u64,
+    };
+
+
+    let notify_channel = ChannelId(668964814684422184);
+    if let Err(err) = notify_channel.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("New nominee");
+            e.fields(vec![
+                ("Demographic", demographic, true),
+                ("Member Count", member_count.to_string(), true),
+                ("Invite Link", invite_url, true),
+            ]);
+            e.description(target_name);
+            e
+        });
+        m
+    }).await {
+        return Err(CommandError(format!("Could not send nominee: {:?}", err)));
+    }
+
+    if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Nomination Sent");
+            e.color(Colour::DARK_GREEN);
+            e.footer(|f| {
+                f.text("DSC Bot | Powered by Rusty Development");
+                f
+            });
+            e
+        });
+        m
+    }).await {
+        return Err(CommandError(err.to_string()));
+    }
+
+
+    Ok(())
+}
+
+#[command]
+#[description = "Starts a vote in the specified channel"]
+#[usage("<channel> <Vote>")]
+#[min_args(2)]
+pub async fn startvote(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let target_channel = args.single::<ChannelId>()?;
+    let vote_thing = args.rest();
+    crate::util::run_yesno_vote(&ctx, target_channel, vote_thing.to_string()).await?;
+
+    Ok(())
+}
