@@ -36,11 +36,12 @@ features = [
 ]
 
 [dependencies.sqlx]
-version = "0.3.5"
+version = "0.3"
 default-features = false
 features = [
     "runtime-tokio",
     "macros",
     "postgres",
     "tls",
+    "chrono"
 ]
