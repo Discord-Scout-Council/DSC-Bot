@@ -27,15 +27,15 @@ use serenity::{
 };
 use std::{collections::HashSet, env};
 
-use rusqlite::params;
-
 use log::{debug, error, info};
 
 use sqlx::PgPool;
 
 mod checks;
 mod commands;
+pub mod models;
 mod util;
+use models::Dban;
 /*use crate::commands::{
     badges::*, general::*, moderation::*, owner::*, settings::*, verification::*,
 };*/
@@ -45,7 +45,7 @@ use util::*;
 mod prelude;
 
 // Postgres Connection Pool
-struct ConnectionPool;
+pub struct ConnectionPool;
 impl TypeMapKey for ConnectionPool {
     type Value = PgPool;
 }
@@ -166,7 +166,8 @@ impl EventHandler for Handler {
     }
 
     async fn guild_ban_addition(&self, ctx: Context, guild_id: GuildId, banned_user: User) {
-        let db = data::get_discord_banlist();
+        let bot_data = &ctx.data.read().await;
+        let pg_pool = bot_data.get::<ConnectionPool>().unwrap();
         let bans = guild_id.bans(&ctx).await.unwrap();
 
         let mut reason = &String::from("No reason provided");
@@ -178,14 +179,15 @@ impl EventHandler for Handler {
                 }
             }
         }
-        if let Err(err) = db.execute(
-            "INSERT INTO dbans (userid,reason,guild_id,is_withdrawn) VALUES (?1,?2,?3,0)",
-            params![
-                banned_user.id.as_u64().to_string(),
-                &reason,
-                guild_id.as_u64().to_string()
-            ],
-        ) {
+        if let Err(err) = sqlx::query!(
+            "INSERT INTO dbans (userid,reason,guild_id) VALUES ($1,$2,$3)",
+            banned_user.id.as_u64().to_string(),
+            &reason,
+            guild_id.as_u64().to_string()
+        )
+        .execute(pg_pool)
+        .await
+        {
             error!(
                 "Encountered an error adding a ban for {}: {:?}",
                 banned_user.name, err
@@ -236,28 +238,32 @@ impl EventHandler for Handler {
     }
 
     async fn guild_member_addition(&self, ctx: Context, guild_id: GuildId, new_member: Member) {
-        let db = data::get_discord_banlist();
+        let bot_data = ctx.data.read().await;
+        let pg_pool = bot_data.get::<ConnectionPool>().unwrap();
         let user_id = new_member.user.id;
         let member_id = user_id.as_u64();
         let mut is_banned = false;
         let mut reason = String::from("No reason provided");
+        let result = match sqlx::query_as!(
+            Dban,
+            "SELECT * FROM dbans WHERE userid = $1",
+            member_id.to_string()
+        )
+        .fetch_one(pg_pool)
+        .await
         {
-        let mut stmt = db
-            .prepare("SELECT reason,is_withdrawn FROM dbans WHERE userid = (?)")
-            .unwrap();
-        let mut ban_result = stmt.query(params![&member_id.to_string()]).unwrap();
-        // Nest IF statements to determine if a ban was withdrawn
-        if let Ok(o) = ban_result.next() {
-            if let Some(r) = o {
-                if let Ok(withdrawn) = r.get::<usize,u32>(1) {
-                    if withdrawn == 0 {
-                        is_banned = true;
-                        reason = r.get(0).unwrap();
-                    }
-                }
+            Ok(dban) => dban,
+            Err(e) => {
+                error!("SQL Error: {:?}", e);
+                return;
             }
+        };
+
+        if result.is_withdrawn != true {
+            is_banned = true;
+            reason = result.reason;
         }
-    }
+
         let guild_arc = guild_id.to_guild_cached(&ctx).await.unwrap();
         let guild = guild_arc.read().await;
 
