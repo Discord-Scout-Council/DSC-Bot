@@ -18,6 +18,7 @@ kankyo = "0.3"
 env_logger = "0.7.1"
 log = "0.4.8"
 tokio = { version = "0.2", features = ["macros"] }
+serde = { version = "1", features = ["derive"]}
 
 [dependencies.serenity]
 git = "https://github.com/Lakelezz/serenity.git"
