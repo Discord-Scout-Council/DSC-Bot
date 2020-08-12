@@ -51,22 +51,26 @@ async fn age(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         }
     }
 
-    match msg.channel_id.send_message(&ctx, |m| {
-        m.embed(|e| {
-            e.title("Age Verification");
-            e.description(format!(
-                "Successfully set your age group as {} 18",
-                overunder.to_lowercase()
-            ));
-            e.color(Colour::DARK_GREEN);
-            e.footer(|f| {
-                f.text("DSC Bot | Powered by Rusty Development");
-                f
+    match msg
+        .channel_id
+        .send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Age Verification");
+                e.description(format!(
+                    "Successfully set your age group as {} 18",
+                    overunder.to_lowercase()
+                ));
+                e.color(Colour::DARK_GREEN);
+                e.footer(|f| {
+                    f.text("DSC Bot | Powered by Rusty Development");
+                    f
+                });
+                e
             });
-            e
-        });
-        m
-    }).await {
+            m
+        })
+        .await
+    {
         Err(err) => {
             error!(
                 "Error sending age success response in channel {}: {:?}",

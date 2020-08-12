@@ -34,14 +34,17 @@ pub async fn handle_verification_file(ctx: &Context, msg: &Message) -> Result<()
 
     let verify_channel_id = verify_channel.id();
 
-    let verify_message = match verify_channel_id.send_message(&ctx, |m| {
-        m.content(format!(
-            "{}\n{}",
-            &msg.author.id.as_u64().to_string(),
-            msg.attachments.get(0).unwrap().url
-        ));
-        m
-    }).await {
+    let verify_message = match verify_channel_id
+        .send_message(&ctx, |m| {
+            m.content(format!(
+                "{}\n{}",
+                &msg.author.id.as_u64().to_string(),
+                msg.attachments.get(0).unwrap().url
+            ));
+            m
+        })
+        .await
+    {
         Err(err) => return Err(err.to_string()),
         Ok(m) => m,
     };
@@ -49,24 +52,31 @@ pub async fn handle_verification_file(ctx: &Context, msg: &Message) -> Result<()
     let emoji_vec = define_emoji_vec();
 
     for s in emoji_vec {
-        if let Err(err) = verify_message.react(http_cache, s.chars().next().unwrap()).await {
+        if let Err(err) = verify_message
+            .react(http_cache, s.chars().next().unwrap())
+            .await
+        {
             return Err(err.to_string());
         }
     }
 
-    if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
-        m.embed(|e| {
-            e.title("Verification Request Status Update");
-            e.description("Request Submitted");
-            e.colour(Colour::BLUE);
-            e.footer(|f| {
-                f.text("DSC Bot | Powered by Rusty Development");
-                f
+    if let Err(err) = msg
+        .channel_id
+        .send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Verification Request Status Update");
+                e.description("Request Submitted");
+                e.colour(Colour::BLUE);
+                e.footer(|f| {
+                    f.text("DSC Bot | Powered by Rusty Development");
+                    f
+                });
+                e
             });
-            e
-        });
-        m
-    }).await {
+            m
+        })
+        .await
+    {
         return Err(format!(
             "Error sending successful submission message: {:?}",
             err.to_string()
@@ -76,14 +86,20 @@ pub async fn handle_verification_file(ctx: &Context, msg: &Message) -> Result<()
     Ok(())
 }
 
-pub async fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Result<String, String> {
+pub async fn handle_verification_reaction(
+    ctx: &Context,
+    react: Reaction,
+) -> Result<String, String> {
     let current_info = &ctx.http.get_current_application_info().await.unwrap();
     if react.user_id.as_u64() == current_info.id.as_u64() {
         return Ok(String::from(""));
     }
     let message_id = react.message_id;
     let http_cache = &ctx.http;
-    let message = match http_cache.get_message(684577265425973285, *message_id.as_u64()).await {
+    let message = match http_cache
+        .get_message(684577265425973285, *message_id.as_u64())
+        .await
+    {
         Ok(m) => m,
         Err(err) => return Err(err.to_string()),
     };
@@ -107,7 +123,10 @@ pub async fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Res
     let split_contents = user_id.collect::<Vec<&str>>();
     let user_id_str: &str = split_contents.get(0).unwrap();
 
-    let user = match http_cache.get_user(split_contents.get(0).unwrap().parse::<u64>().unwrap()).await {
+    let user = match http_cache
+        .get_user(split_contents.get(0).unwrap().parse::<u64>().unwrap())
+        .await
+    {
         Err(err) => return Err(err.to_string()),
         Ok(u) => u,
     };
@@ -127,19 +146,22 @@ pub async fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Res
         VerifyType::Vigil => get_global_pickle_database("vigil.db"),
         VerifyType::Quartermaster => get_global_pickle_database("quartermaster.db"),
         VerifyType::Close => {
-            if let Err(err) = priv_chan.send_message(&ctx, |m| {
-                m.embed(|e| {
-                    e.title("Verification");
-                    e.description("Verification Request Closed.");
-                    e.colour(Colour::BLUE);
-                    e.footer(|f| {
-                        f.text("DSC Bot | Powered by Rusty Development");
-                        f
+            if let Err(err) = priv_chan
+                .send_message(&ctx, |m| {
+                    m.embed(|e| {
+                        e.title("Verification");
+                        e.description("Verification Request Closed.");
+                        e.colour(Colour::BLUE);
+                        e.footer(|f| {
+                            f.text("DSC Bot | Powered by Rusty Development");
+                            f
+                        });
+                        e
                     });
-                    e
-                });
-                m
-            }).await {
+                    m
+                })
+                .await
+            {
                 return Err(format!(
                     "Could not send closed request message to {}: {:?}",
                     user_id_str.to_string(),
@@ -160,19 +182,22 @@ pub async fn handle_verification_reaction(ctx: &Context, react: Reaction) -> Res
         return Err(err.to_string());
     }
 
-    if let Err(err) = priv_chan.send_message(&ctx, |m| {
-        m.embed(|e| {
-            e.title("Verification Request Status Update");
-            e.description("Successfully verified.");
-            e.colour(Colour::DARK_GREEN);
-            e.footer(|f| {
-                f.text("DSC Bot | Powered by Rusty Development");
-                f
+    if let Err(err) = priv_chan
+        .send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Verification Request Status Update");
+                e.description("Successfully verified.");
+                e.colour(Colour::DARK_GREEN);
+                e.footer(|f| {
+                    f.text("DSC Bot | Powered by Rusty Development");
+                    f
+                });
+                e
             });
-            e
-        });
-        m
-    }).await {
+            m
+        })
+        .await
+    {
         return Err(format!(
             "Error sending verification success message {:?}",
             err.to_string()

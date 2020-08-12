@@ -48,18 +48,20 @@ async fn get(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
     match db.get::<String>(&args.rest()) {
         Some(s) => {
-            msg.channel_id.send_message(&ctx, |m| {
-                m.embed(|e| {
-                    e.title("Server Settings");
-                    e.field("Setting", &args.rest(), true);
-                    e.field("Value", s, true);
-                    e.colour(Colour::DARK_GREEN);
+            msg.channel_id
+                .send_message(&ctx, |m| {
+                    m.embed(|e| {
+                        e.title("Server Settings");
+                        e.field("Setting", &args.rest(), true);
+                        e.field("Value", s, true);
+                        e.colour(Colour::DARK_GREEN);
 
-                    e
-                });
+                        e
+                    });
 
-                m
-            }).await?;
+                    m
+                })
+                .await?;
         }
         None => {
             msg.channel_id.send_message(&ctx, |m| {
@@ -106,50 +108,56 @@ async fn set(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     };
 
     if setting_value == 0 {
-        msg.channel_id.send_message(&ctx, |m| {
-            m.embed(|e| {
-                e.title("Server Settings");
-                e.description(format!("Invalid setting value."));
+        msg.channel_id
+            .send_message(&ctx, |m| {
+                m.embed(|e| {
+                    e.title("Server Settings");
+                    e.description(format!("Invalid setting value."));
 
-                e
-            });
+                    e
+                });
 
-            m
-        }).await?;
+                m
+            })
+            .await?;
     }
 
     if let None = settings.get::<u64>(&setting_name) {
-        msg.channel_id.send_message(&ctx, |m| {
-            m.embed(|e| {
-                e.title("Server Settings");
-                e.description(format!(
-                    "Setting {} does not exist. Refer to command help",
-                    setting_name
-                ));
-                e.colour(Colour::RED);
-                e
-            });
-            m
-        }).await?;
+        msg.channel_id
+            .send_message(&ctx, |m| {
+                m.embed(|e| {
+                    e.title("Server Settings");
+                    e.description(format!(
+                        "Setting {} does not exist. Refer to command help",
+                        setting_name
+                    ));
+                    e.colour(Colour::RED);
+                    e
+                });
+                m
+            })
+            .await?;
     } else {
         let old_value = settings.get::<u64>(&setting_name).unwrap();
         settings.set(setting_name, &setting_value)?;
-        msg.channel_id.send_message(&ctx, |m| {
-            m.embed(|e| {
-                e.title("Server Settings");
-                e.description("Successfully changed setting");
-                e.field("Setting", setting_name, true);
-                e.field("New Value", setting_value, true);
-                e.field("Old Value", old_value, false);
-                e.colour(Colour::DARK_GREEN);
-                e.footer(|f| {
-                    f.text(format!("Requested by {}", &msg.author.name));
-                    f
+        msg.channel_id
+            .send_message(&ctx, |m| {
+                m.embed(|e| {
+                    e.title("Server Settings");
+                    e.description("Successfully changed setting");
+                    e.field("Setting", setting_name, true);
+                    e.field("New Value", setting_value, true);
+                    e.field("Old Value", old_value, false);
+                    e.colour(Colour::DARK_GREEN);
+                    e.footer(|f| {
+                        f.text(format!("Requested by {}", &msg.author.name));
+                        f
+                    });
+                    e
                 });
-                e
-            });
-            m
-        }).await?;
+                m
+            })
+            .await?;
     }
 
     Ok(())
@@ -163,19 +171,21 @@ async fn resetsettings(ctx: &Context, msg: &Message) -> CommandResult {
 
     init_guild_settings(&mut db);
 
-    msg.channel_id.send_message(&ctx, |m| {
-        m.embed(|e| {
-            e.title("Server Settings");
-            e.description(format!("Successfully reset server settings"));
-            e.footer(|f| {
-                f.text(format!("Requested by {}", &msg.author.name));
+    msg.channel_id
+        .send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Server Settings");
+                e.description(format!("Successfully reset server settings"));
+                e.footer(|f| {
+                    f.text(format!("Requested by {}", &msg.author.name));
 
-                f
+                    f
+                });
+                e
             });
-            e
-        });
-        m
-    }).await?;
+            m
+        })
+        .await?;
 
     Ok(())
 }

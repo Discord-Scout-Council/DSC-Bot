@@ -7,10 +7,10 @@ use crate::prelude::*;
 use serenity::{
     http::GuildPagination,
     model::{
-        guild::PartialGuild,
-        id::{GuildId, ChannelId},
-        invite::{Invite, InviteGuild},
         guild::Guild,
+        guild::PartialGuild,
+        id::{ChannelId, GuildId},
+        invite::{Invite, InviteGuild},
     },
 };
 
@@ -71,20 +71,24 @@ async fn serverinfo(ctx: &Context, msg: &Message) -> CommandResult {
             .to_string(),
     );
 
-    match msg.channel_id.send_message(&ctx.http, |m| {
-        m.embed(|e| {
-            e.title(&guild.name);
+    match msg
+        .channel_id
+        .send_message(&ctx.http, |m| {
+            m.embed(|e| {
+                e.title(&guild.name);
 
-            e.field("Member Count", member_count.to_string(), true);
-            e.field("Server Owner", guild_owner, true);
+                e.field("Member Count", member_count.to_string(), true);
+                e.field("Server Owner", guild_owner, true);
 
-            e.thumbnail(icon_url);
+                e.thumbnail(icon_url);
 
-            e
-        });
+                e
+            });
 
-        m
-    }).await {
+            m
+        })
+        .await
+    {
         Err(err) => error!("Error sending server count: {:?}", err),
         Ok(_msg) => (),
     }
@@ -97,35 +101,46 @@ async fn serverinfo(ctx: &Context, msg: &Message) -> CommandResult {
 #[usage("<Suggestion>")]
 #[min_args(1)]
 async fn botsuggest(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let suggest_channel = ctx.cache.read().await.guild_channel(668964814684422184).unwrap();
+    let suggest_channel = ctx
+        .cache
+        .read()
+        .await
+        .guild_channel(668964814684422184)
+        .unwrap();
     let suggestion = args.rest();
     let guild_arc = &msg.guild(&ctx).await.unwrap();
     let guild = guild_arc.read().await;
     let guild_name = guild.name.clone();
-    suggest_channel.read().await.send_message(ctx, |m| {
-        m.embed(|e| {
-            e.title("Bot Suggestion");
-            e.description(suggestion);
-            e.field("Suggester", &msg.author.name, true);
-            e.field("Guild", guild_name, true);
+    suggest_channel
+        .read()
+        .await
+        .send_message(ctx, |m| {
+            m.embed(|e| {
+                e.title("Bot Suggestion");
+                e.description(suggestion);
+                e.field("Suggester", &msg.author.name, true);
+                e.field("Guild", guild_name, true);
 
-            e
-        });
+                e
+            });
 
-        m
-    }).await?;
+            m
+        })
+        .await?;
 
-    msg.channel_id.send_message(&ctx, |m| {
-        m.embed(|e| {
-            e.title("Bot Suggestion");
-            e.description("Successfully sent your suggestion!");
-            e.colour(Colour::DARK_GREEN);
+    msg.channel_id
+        .send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Bot Suggestion");
+                e.description("Successfully sent your suggestion!");
+                e.colour(Colour::DARK_GREEN);
 
-            e
-        });
+                e
+            });
 
-        m
-    }).await?;
+            m
+        })
+        .await?;
 
     Ok(())
 }
@@ -260,39 +275,44 @@ pub async fn nominate(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         None => 0u64,
     };
 
-
     let notify_channel = ChannelId(668964814684422184);
-    if let Err(err) = notify_channel.send_message(&ctx, |m| {
-        m.embed(|e| {
-            e.title("New nominee");
-            e.fields(vec![
-                ("Demographic", demographic, true),
-                ("Member Count", member_count.to_string(), true),
-                ("Invite Link", invite_url, true),
-            ]);
-            e.description(target_name);
-            e
-        });
-        m
-    }).await {
+    if let Err(err) = notify_channel
+        .send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("New nominee");
+                e.fields(vec![
+                    ("Demographic", demographic, true),
+                    ("Member Count", member_count.to_string(), true),
+                    ("Invite Link", invite_url, true),
+                ]);
+                e.description(target_name);
+                e
+            });
+            m
+        })
+        .await
+    {
         return Err(CommandError(format!("Could not send nominee: {:?}", err)));
     }
 
-    if let Err(err) = msg.channel_id.send_message(&ctx, |m| {
-        m.embed(|e| {
-            e.title("Nomination Sent");
-            e.color(Colour::DARK_GREEN);
-            e.footer(|f| {
-                f.text("DSC Bot | Powered by Rusty Development");
-                f
+    if let Err(err) = msg
+        .channel_id
+        .send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.title("Nomination Sent");
+                e.color(Colour::DARK_GREEN);
+                e.footer(|f| {
+                    f.text("DSC Bot | Powered by Rusty Development");
+                    f
+                });
+                e
             });
-            e
-        });
-        m
-    }).await {
+            m
+        })
+        .await
+    {
         return Err(CommandError(err.to_string()));
     }
-
 
     Ok(())
 }
