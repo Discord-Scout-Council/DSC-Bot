@@ -15,7 +15,8 @@ use crate::prelude::*;
 async fn restart(ctx: &Context, msg: &Message) -> CommandResult {
     match msg
         .channel_id
-        .say(&ctx.http, "Restarting bot, and applying new changes").await
+        .say(&ctx.http, "Restarting bot, and applying new changes")
+        .await
     {
         Err(err) => error!("Error sending restart response: {:?}", err),
         Ok(_msg) => (),
@@ -36,22 +37,26 @@ async fn initcache(ctx: &Context, msg: &Message) -> CommandResult {
             err
         );
     }
-    if let Err(err) = msg.channel_id.send_message(&ctx.http, |m| {
-        m.embed(|e| {
-            e.title("Campmaster Constantine");
-            e.description("Successfully initialized the Guild Cache");
-            e.footer(|f| {
-                let mut footer: String = String::from("Requested by ");
-                footer.push_str(&msg.author.name);
+    if let Err(err) = msg
+        .channel_id
+        .send_message(&ctx.http, |m| {
+            m.embed(|e| {
+                e.title("Campmaster Constantine");
+                e.description("Successfully initialized the Guild Cache");
+                e.footer(|f| {
+                    let mut footer: String = String::from("Requested by ");
+                    footer.push_str(&msg.author.name);
 
-                f
+                    f
+                });
+
+                e
             });
 
-            e
-        });
-
-        m
-    }).await {
+            m
+        })
+        .await
+    {
         error!(
             "Error responding to {} cache init: {:?}",
             msg.guild_id.unwrap().as_u64(),

@@ -4,7 +4,8 @@
  */
 
 use pickledb::{PickleDb, PickleDbDumpPolicy};
-use rusqlite::{params, Connection};
+use sqlx::postgres::PgPool;
+use std::env;
 use std::fs::create_dir_all;
 
 pub fn get_pickle_database(guild_id: &u64, db_name: &str) -> PickleDb {
@@ -43,61 +44,21 @@ fn create_directories(path: &String) {
     create_dir_all(path).unwrap();
 }
 
-fn get_sqlite_database(guild_id: &u64, db_name: &str) -> Connection {
-    let mut conn = Connection::open(construct_data_path(&guild_id, &db_name)).unwrap();
-
-    conn
-}
-
-pub fn get_strike_database(guild_id: &u64) -> Connection {
-    let conn = get_sqlite_database(guild_id, &"strikes.db");
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS strikes (
-            id INTEGER PRIMARY KEY,
-            userid TEXT NOT NULL,
-            moderator TEXT NOT NULL,
-            reason TEXT NOT NULL,
-            details TEXT,
-            is_withdrawn INTEGER NOT NULL
-            )",
-        params![],
-    )
-    .unwrap();
-
-    conn
-}
-
-pub fn get_discord_banlist() -> Connection {
-    let conn = Connection::open("data/dbans.db").unwrap();
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS dbans (
-        id INTEGER PRIMARY KEY,
-        userid TEXT NOT NULL,
-        reason TEXT NOT NULL,
-        guild_id TEXT NOT NULL,
-        is_withdrawn INTEGER NOT NULL
-    )",
-        params![],
-    )
-    .unwrap();
-
-    conn
-}
-
-pub fn get_badge_db() -> Connection {
-    let conn = Connection::open("data/badges.db").unwrap();
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS badges (
-        userid TEXT NOT NULL,
-        badge TEXT NOT NULL)",
-        params![],
-    )
-    .unwrap();
-
-    conn
-}
-
 pub fn init_guild_settings(db: &mut PickleDb) {
     //* Question of the Day
     db.set("modlogs_channel", &0u64);
+}
+
+pub async fn obtain_pg_pool() -> Result<PgPool, Box<dyn std::error::Error>> {
+    let url = match env::var("DATABASE_URL") {
+        Ok(u) => u,
+        Err(err) => {
+            return Err(Box::new(err));
+        }
+    };
+
+    //Connect and return a pool
+    let pool = PgPool::builder().max_size(5).build(&url).await?;
+
+    Ok(pool)
 }
